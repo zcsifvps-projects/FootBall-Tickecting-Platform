@@ -9,7 +9,7 @@ import Register from "./pages/auth/Register";
 import SignIn from "./pages/auth/SignIn";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import MatchDetails from "./pages/match/MatchDetails";
-import Matches from "./pages/match/matches";
+import Matches from "./pages/match/Matches";
 import Cart from "./pages/cart/Cart";
 import Checkout from "./pages/checkout/Checkout";
 import PaymentProcessing from "./pages/payment/PaymentProcessing";
