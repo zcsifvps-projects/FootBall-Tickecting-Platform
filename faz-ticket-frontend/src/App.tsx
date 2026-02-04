@@ -1,9 +1,12 @@
+import { useEffect } from "react";
+import { useLocation, BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "./contexts/CartContext";
+
+// Pages
 import Index from "./pages/Index";
 import Register from "./pages/auth/Register";
 import SignIn from "./pages/auth/SignIn";
@@ -19,6 +22,20 @@ import Teams from "./pages/Teams";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 
+/**
+ * ScrollToTop Component
+ * Ensures the window scrolls back to the top on every route change.
+ */
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,6 +45,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          {/* Global Scroll Fix */}
+          <ScrollToTop />
+          
           <Routes>
             <Route path="/" element={<Index />} />
             {/* Existing landing route that lists a few matches */}
@@ -61,6 +81,7 @@ const App = () => (
             <Route path="/account/tickets" element={<MyTickets />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/help" element={<Help />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

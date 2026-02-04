@@ -64,10 +64,10 @@ const makeBlock = (id: string, name: string, wing: Block["wing"], gate: string, 
 const STADIUM_MAP = {
   blocks: [
     makeBlock("VIP-C", "VIP Central", "VIP Grandstand", "Gate 1", 500, 6, 12),
-    makeBlock("WW-L", "West Lower", "West Wing", "Gate 12", 250, 8, 15),
-    makeBlock("EW-L", "East Lower", "East Wing", "Gate 6", 200, 10, 20),
-    makeBlock("NW-U", "North Upper", "North Wing", "Gate 9", 150, 12, 20),
-    makeBlock("SW-U", "South Upper", "South Wing", "Gate 3", 100, 12, 20),
+    makeBlock("WW-L", "West Wing", "West Wing", "Gate 12", 250, 8, 15),
+    makeBlock("EW-L", "East Wing", "East Wing", "Gate 6", 200, 10, 20),
+    makeBlock("NW-U", "North Wing", "North Wing", "Gate 9", 150, 12, 20),
+    makeBlock("SW-U", "South Wing", "South Wing", "Gate 3", 100, 12, 20),
   ],
 };
 

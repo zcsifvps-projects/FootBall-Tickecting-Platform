@@ -1,5 +1,4 @@
-// src/pages/MyTickets.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, QrCode, Calendar, MapPin, Clock, Ticket as TicketIcon, Info } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -7,41 +6,55 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 export default function MyTickets() {
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [upcomingTickets, setUpcomingTickets] = useState<any[]>([]);
 
-  const upcomingTickets = [
-    {
-      id: "TKT-001",
-      match: "Zambia vs Malawi",
-      competition: "World Cup Qualifier",
-      date: "Sat, 18 Oct 2025",
-      time: "15:00",
-      stadium: "National Heroes Stadium",
-      city: "Lusaka",
-      zone: "Covered Stand",
-      section: "B",
-      row: "12",
-      seats: ["15", "16"],
-      total: 292.32,
-    },
-    {
-      id: "TKT-002",
-      match: "ZESCO United vs Zanaco",
-      competition: "Super League",
-      date: "Sun, 26 Oct 2025",
-      time: "14:00",
-      stadium: "Levy Mwanawasa Stadium",
-      city: "Ndola",
-      zone: "VIP Stand",
-      section: "A",
-      row: "5",
-      seats: ["8"],
-      total: 180.0,
-    },
-  ];
+  // Load tickets from storage on mount
+  useEffect(() => {
+    const loadTickets = () => {
+      // 1. Get real tickets from localStorage (from PaymentSuccess)
+      const savedTickets = JSON.parse(localStorage.getItem("my-tickets") || "[]");
+      
+      // 2. Your default/mock tickets for UI testing
+      const defaultTickets = [
+        {
+          id: "TKT-001",
+          match: "Zambia vs Malawi",
+          competition: "World Cup Qualifier",
+          date: "Sat, 18 Oct 2025",
+          time: "15:00",
+          stadium: "National Heroes Stadium",
+          city: "Lusaka",
+          zone: "Covered Stand",
+          section: "B",
+          row: "12",
+          seats: ["15", "16"],
+          total: 292.32,
+        },
+        {
+          id: "TKT-002",
+          match: "ZESCO United vs Zanaco",
+          competition: "Super League",
+          date: "Sun, 26 Oct 2025",
+          time: "14:00",
+          stadium: "Levy Mwanawasa Stadium",
+          city: "Ndola",
+          zone: "VIP Stand",
+          section: "A",
+          row: "5",
+          seats: ["8"],
+          total: 180.0,
+        },
+      ];
+
+      // Combine real tickets (newest first) with default ones
+      setUpcomingTickets([...savedTickets, ...defaultTickets]);
+    };
+
+    loadTickets();
+  }, []);
 
   const pastTickets = [
     {
@@ -62,12 +75,10 @@ export default function MyTickets() {
   ];
 
   const TicketCard = ({ ticket, isPast = false }: any) => (
-    <div className={`relative flex flex-col md:flex-row w-full mb-6 group transition-all duration-300 ${isPast ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-      {/* LEFT SIDE: MATCH INFO (The "Stub") */}
-      <div className="flex-[2] bg-white border-2 border-slate-200 border-r-0 rounded-t-[2rem] md:rounded-l-[2rem] md:rounded-tr-none p-8 relative overflow-hidden">
-        {/* Top Decorative Circle */}
+    <div className={`relative flex flex-col md:flex-row w-full mb-6 group transition-all duration-300 ${isPast ? 'opacity-75 grayscale-[0.5]' : 'hover:scale-[1.01]'}`}>
+      {/* LEFT SIDE: MATCH INFO */}
+      <div className="flex-[2] bg-white border-2 border-slate-200 border-r-0 rounded-t-[2rem] md:rounded-l-[2rem] md:rounded-tr-none p-8 relative overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-50 border-2 border-slate-200 rounded-full hidden md:block" />
-        {/* Bottom Decorative Circle */}
         <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-8 h-8 bg-slate-50 border-2 border-slate-200 rounded-full hidden md:block" />
 
         <div className="flex flex-col h-full justify-between gap-6">
@@ -124,7 +135,7 @@ export default function MyTickets() {
             </div>
             <div>
               <p className="text-[9px] font-black text-slate-400 uppercase">Sec</p>
-              <p className="text-xs font-bold">{ticket.section}</p>
+              <p className="text-xs font-bold">{ticket.section || "B"}</p>
             </div>
             <div>
               <p className="text-[9px] font-black text-slate-400 uppercase">Row</p>
@@ -132,14 +143,14 @@ export default function MyTickets() {
             </div>
             <div>
               <p className="text-[9px] font-black text-slate-400 uppercase">Seats</p>
-              <p className="text-xs font-bold">{ticket.seats.join(", ")}</p>
+              <p className="text-xs font-bold">{Array.isArray(ticket.seats) ? ticket.seats.join(", ") : ticket.seats}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* RIGHT SIDE: ACTIONS/QR (The "Validation" Side) */}
-      <div className={`flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-slate-200 rounded-b-[2rem] md:rounded-r-[2rem] md:rounded-bl-none border-t-2 md:border-t-2 md:border-l-2 border-dashed border-l-transparent`}>
+      {/* RIGHT SIDE: ACTIONS/QR */}
+      <div className={`flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-slate-200 rounded-b-[2rem] md:rounded-r-[2rem] md:rounded-bl-none border-t-2 md:border-l-2 border-dashed border-l-transparent shadow-sm`}>
         {!isPast ? (
           <div className="w-full space-y-4 text-center">
             <div className="bg-white p-4 rounded-2xl shadow-inner border border-slate-100 inline-block mb-2">
@@ -149,7 +160,7 @@ export default function MyTickets() {
               ID: {ticket.id}
             </p>
             <div className="flex flex-col gap-2 w-full">
-              <Button className="w-full bg-[#0e633d] hover:bg-black text-white font-black uppercase italic text-xs h-11">
+              <Button className="w-full bg-[#0e633d] hover:bg-black text-white font-black uppercase italic text-xs h-11 transition-colors">
                 View QR Code
               </Button>
               <Button variant="outline" className="w-full border-2 border-slate-200 font-black uppercase italic text-xs h-11">
@@ -165,7 +176,7 @@ export default function MyTickets() {
              </div>
              <p className="text-xs font-black uppercase text-slate-400 italic">Past Event</p>
              <Button variant="link" className="text-[#0e633d] font-black uppercase italic text-[10px] mt-2">
-               Download Receipt
+                Download Receipt
              </Button>
           </div>
         )}
@@ -176,10 +187,8 @@ export default function MyTickets() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
       <Header />
-
       <main className="flex-1 container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
             <div>
               <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-slate-900">
@@ -194,17 +203,17 @@ export default function MyTickets() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-white border border-slate-200 p-1 h-14 rounded-2xl mb-8 w-full md:w-auto">
-              <TabsTrigger value="upcoming" className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full">
+              <TabsTrigger value="upcoming" className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full transition-all">
                 Upcoming ({upcomingTickets.length})
               </TabsTrigger>
-              <TabsTrigger value="past" className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full">
+              <TabsTrigger value="past" className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full transition-all">
                 Past History ({pastTickets.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="upcoming" className="mt-0 outline-none">
               {upcomingTickets.length > 0 ? (
-                upcomingTickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} />)
+                upcomingTickets.map((ticket, idx) => <TicketCard key={`${ticket.id}-${idx}`} ticket={ticket} />)
               ) : (
                 <EmptyState />
               )}
@@ -217,7 +226,6 @@ export default function MyTickets() {
             </TabsContent>
           </Tabs>
 
-          {/* Info Card */}
           <div className="mt-12 bg-[#0e633d] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 opacity-10">
               <QrCode size={200} />
@@ -246,7 +254,6 @@ export default function MyTickets() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );
