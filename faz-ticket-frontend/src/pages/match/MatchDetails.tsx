@@ -9,7 +9,6 @@ import {
   Armchair as SeatIcon,
   Target,
   ShieldCheck,
-  Ticket,
 } from "lucide-react";
 
 import { Header } from "@/components/layout/Header";
@@ -123,80 +122,82 @@ export default function MatchDetails() {
       <Header />
       
       {/* Hero Match Header */}
-        <div className="relative rounded-[2.5rem] overflow-hidden mb-10 shadow-2xl h-[400px]">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1A3D1D] via-[#1A3D1D]/70 to-transparent z-10" />
-          <img 
-            src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=2000" 
-            className="absolute inset-0 w-full h-full object-cover" 
-            alt="Chipolopolo Zambia" 
-          />
-          <div className="relative z-20 p-8 md:p-12 h-full flex flex-col justify-end">
-            <Badge className="bg-[#FF9900] text-white border-none mb-4 px-6 py-1 w-fit font-semibold shadow-lg">World Cup Qualifier</Badge>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight">
-              Zambia <span className="text-[#FF9900]">vs</span> Malawi
-            </h1>
-            <div className="flex flex-wrap gap-8 text-white/90 font-medium text-sm md:text-base">
-              <span className="flex items-center gap-2 drop-shadow"><Calendar className="h-5 w-5 text-[#FF9900]" /> Jan 25, 2026</span>
-              <span className="flex items-center gap-2 drop-shadow"><Clock className="h-5 w-5 text-[#FF9900]" /> 15:00 CAT</span>
-              <span className="flex items-center gap-2 drop-shadow"><MapPin className="h-5 w-5 text-[#FF9900]" /> Levy Mwanawasa, Ndola</span>
-            </div>
+      <div className="relative rounded-[2.5rem] overflow-hidden mb-10 shadow-2xl h-[400px]">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0e633d] via-[#0e633d]/70 to-transparent z-10" />
+        <img 
+          src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=2000" 
+          className="absolute inset-0 w-full h-full object-cover" 
+          alt="Chipolopolo Zambia" 
+        />
+        <div className="relative z-20 p-8 md:p-12 h-full flex flex-col justify-end">
+          <Badge className="bg-[#FF9900] text-white border-none mb-4 px-6 py-1 w-fit font-semibold shadow-lg">World Cup Qualifier</Badge>
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight">
+            Zambia <span className="text-[#FF9900]">vs</span> Malawi
+          </h1>
+          <div className="flex flex-wrap gap-8 text-white/90 font-medium text-sm md:text-base">
+            <span className="flex items-center gap-2 drop-shadow"><Calendar className="h-5 w-5 text-[#FF9900]" /> Jan 25, 2026</span>
+            <span className="flex items-center gap-2 drop-shadow"><Clock className="h-5 w-5 text-[#FF9900]" /> 15:00 CAT</span>
+            <span className="flex items-center gap-2 drop-shadow"><MapPin className="h-5 w-5 text-[#FF9900]" /> Levy Mwanawasa, Ndola</span>
           </div>
         </div>
+      </div>
 
       <main className="flex-1 container mx-auto px-4 -mt-8 pb-20 relative z-20">
         <div className="grid lg:grid-cols-12 gap-8">
           
           {/* LEFT COLUMN: SEATING MAP */}
           <div className="lg:col-span-8 space-y-6">
-            <Card className="border-none shadow-2xl overflow-hidden rounded-[3rem] bg-white">
-              <CardHeader className="bg-[#1A3D1D] py-6 px-10 border-b border-white/5">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-3 text-white">
-                    <Target className="h-6 w-6 text-[#FF9900]" /> 
-                    <span className="tracking-tight font-semibold">Select Seating Experience</span>
-                  </CardTitle>
-                </div>
+            <Card className="border-none shadow-xl overflow-hidden rounded-[2.5rem] bg-white">
+              <CardHeader className="bg-[#0e633d] py-4 px-8">
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Target className="h-5 w-5 text-[#ef7d00]" /> 
+                  <span className="tracking-tight font-bold uppercase italic text-sm">Select Seating Experience</span>
+                </CardTitle>
               </CardHeader>
               
-                <CardContent className="p-0">
-                {/* Wing Selection Strip */}
-                <div className="bg-[#F8FAF8] p-6 border-b flex gap-4 overflow-x-auto no-scrollbar">
+              <CardContent className="p-0">
+                {/* Wing Selection */}
+                <div className="bg-slate-50/50 p-4 grid grid-cols-2 md:grid-cols-5 gap-3 border-b border-slate-100">
                   {STADIUM_MAP.blocks.map((b) => (
                     <button
                       key={b.id}
                       onClick={() => { setSelectedBlockId(b.id); setSelectedRowNumber(null); setSelectedSeatNumbers([]); }}
-                      className={`flex-shrink-0 group relative p-5 rounded-2xl transition-all duration-300 min-w-[140px] text-left ${
-                        selectedBlockId === b.id ? "bg-white shadow-xl ring-2 ring-[#FF9900] scale-105" : "bg-transparent opacity-60 hover:opacity-100"
+                      className={`flex flex-col items-start p-3 rounded-2xl transition-all duration-300 text-left border-2 ${
+                        selectedBlockId === b.id 
+                        ? "bg-white border-[#0e633d] shadow-md scale-[1.02]" 
+                        : "bg-white/5 border-transparent hover:border-slate-200"
                       }`}
                     >
-                      <p className={`font-bold text-sm ${selectedBlockId === b.id ? "text-[#1A3D1D]" : "text-slate-600"}`}>{b.wing}</p>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">{b.gate}</p>
-                      <p className="mt-2 text-[#FF9900] font-bold text-xs">K{b.price}</p>
+                      <p className={`font-black text-[10px] uppercase tracking-tight mb-0.5 ${selectedBlockId === b.id ? "text-[#0e633d]" : "text-slate-500"}`}>
+                        {b.wing}
+                      </p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{b.gate}</p>
+                      <p className="mt-1 text-[#ef7d00] font-black text-xs italic">K{b.price}</p>
                     </button>
                   ))}
                 </div>
 
                 {selectedBlock ? (
-                  <div className="bg-[#112913] p-8 md:p-16 relative overflow-hidden min-h-[700px] flex flex-col">
+                  <div className="bg-[#0e633d] p-6 md:p-10 relative overflow-hidden min-h-[500px] flex flex-col">
                     {/* Legend */}
-                    <div className="flex flex-wrap justify-between items-center mb-12 gap-4 z-20">
-                      <div className="flex gap-6 bg-black/40 p-4 rounded-2xl backdrop-blur-md border border-white/10">
+                    <div className="flex flex-wrap justify-between items-center mb-8 gap-4 z-20">
+                      <div className="flex gap-4 bg-black/40 p-3 rounded-xl backdrop-blur-md border border-white/10">
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-sm bg-white" />
-                          <span className="text-[10px] font-semibold text-white uppercase">Available</span>
+                          <div className="w-3 h-3 rounded-sm bg-white" />
+                          <span className="text-[9px] font-semibold text-white uppercase">Available</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-sm bg-[#FF9900]" />
-                          <span className="text-[10px] font-semibold text-white uppercase">Selected</span>
+                          <div className="w-3 h-3 rounded-sm bg-[#FF9900]" />
+                          <span className="text-[9px] font-semibold text-white uppercase">Selected</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded-sm bg-white/10" />
-                          <span className="text-[10px] font-semibold text-white/30 uppercase">Sold</span>
+                          <div className="w-3 h-3 rounded-sm bg-white/10" />
+                          <span className="text-[9px] font-semibold text-white/30 uppercase">Sold</span>
                         </div>
                       </div>
 
                       {selectedRow && (
-                        <Badge className="bg-[#FF9900] text-white border-none px-4 py-2 font-semibold animate-pulse">
+                        <Badge className="bg-[#FF9900] text-white border-none px-3 py-1 text-[10px] font-semibold">
                           {selectedRow.seats.filter(s => s.status === 'available').length} SEATS REMAINING
                         </Badge>
                       )}
@@ -204,18 +205,18 @@ export default function MatchDetails() {
 
                     {/* Perspective Seating Grid */}
                     <div style={{ perspective: '1500px' }} className="flex-1 flex flex-col justify-center">
-                      <div style={{ transform: 'rotateX(15deg)' }} className="flex flex-col items-center">
+                      <div style={{ transform: 'rotateX(10deg)' }} className="flex flex-col items-center">
                         
                         {/* Row Selection Circle Buttons */}
-                        <div className="flex flex-wrap justify-center gap-4 mb-20">
+                        <div className="flex flex-wrap justify-center gap-3 mb-10">
                           {selectedBlock.rows.map((r) => (
                             <button
                               key={r.rowNumber}
                               onClick={() => { setSelectedRowNumber(r.rowNumber); setSelectedSeatNumbers([]); }}
-                              className={`w-14 h-14 rounded-full font-bold text-sm transition-all border-2 flex items-center justify-center ${
+                              className={`w-10 h-10 rounded-full font-bold text-xs transition-all border-2 flex items-center justify-center ${
                                 selectedRowNumber === r.rowNumber 
-                                ? "bg-[#FF9900] border-[#FF9900] text-white shadow-[0_0_40px_rgba(255,153,0,0.5)] scale-110" 
-                                : "bg-white/5 border-white/10 text-white/40 hover:border-white/40 hover:text-white"
+                                ? "bg-[#FF9900] border-[#FF9900] text-white shadow-lg scale-110" 
+                                : "bg-white/5 border-white/10 text-white/40 hover:text-white"
                               }`}
                             >
                               R{r.rowNumber}
@@ -225,7 +226,7 @@ export default function MatchDetails() {
 
                         {/* Interactive Seat Layout */}
                         {selectedRow ? (
-                          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-5 animate-in fade-in zoom-in-95 duration-500">
+                          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
                             {selectedRow.seats.map((s) => {
                               const isSelected = selectedSeatNumbers.includes(s.seatNumber);
                               const isSold = s.status === "sold";
@@ -234,12 +235,12 @@ export default function MatchDetails() {
                                   key={s.seatNumber}
                                   disabled={isSold}
                                   onClick={() => toggleSeat(s.seatNumber)}
-                                  className={`relative w-14 h-16 rounded-t-2xl transition-all border-b-[6px] flex items-center justify-center font-bold text-xs ${
+                                  className={`relative w-10 h-12 rounded-t-xl transition-all border-b-[4px] flex items-center justify-center font-bold text-[10px] ${
                                     isSold 
                                     ? "bg-white/5 border-white/5 opacity-10 cursor-not-allowed" 
                                     : isSelected 
-                                      ? "bg-[#FF9900] border-[#CC7A00] -translate-y-4 shadow-[0_20px_50px_rgba(255,153,0,0.4)] scale-110 text-white" 
-                                      : "bg-white border-slate-300 hover:bg-slate-50 text-[#1A3D1D]"
+                                      ? "bg-[#FF9900] border-[#CC7A00] -translate-y-2 shadow-lg text-white" 
+                                      : "bg-white border-slate-300 text-[#0e633d]"
                                   }`}
                                 >
                                   {s.seatNumber}
@@ -248,118 +249,96 @@ export default function MatchDetails() {
                             })}
                           </div>
                         ) : (
-                          <div className="py-20 text-center space-y-4">
-                             <RowsIcon className="h-16 w-16 text-white/10 mx-auto animate-bounce" />
-                             <p className="text-white/40 font-semibold uppercase tracking-[0.2em] text-[10px]">Select a row above to view seats</p>
+                          <div className="py-12 text-center space-y-3">
+                             <RowsIcon className="h-12 w-12 text-white/10 mx-auto" />
+                             <p className="text-white/40 font-semibold uppercase tracking-[0.2em] text-[9px]">Select a row to view seats</p>
                           </div>
                         )}
                       </div>
                     </div>
-
-                     {/* The Green Pitch Shimmer */}
-                    <div className="mt-20">
-                      <div className="h-3 w-full bg-[#39FF14]/20 shadow-[0_0_60px_10px_rgba(57,255,20,0.2)] rounded-full relative overflow-hidden">
-                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-                      </div>
-                      <p className="text-center text-[10px] font-bold text-[#39FF14]/40 tracking-[1em] mt-4 uppercase">Pitch Area</p>
-                    </div>
                   </div>
                 ) : (
-                  <div className="py-32 text-center bg-white">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Flag_of_Zambia.svg/1200px-Flag_of_Zambia.svg.png" className="w-20 h-12 mx-auto mb-6 opacity-20 object-cover rounded-md" alt="Zambia" />
-                    <h3 className="text-2xl font-bold text-[#1A3D1D] uppercase">Select a Wing</h3>
-                    <p className="text-slate-400 font-medium">Please choose a wing to start selecting your seats.</p>
+                  <div className="py-20 text-center bg-white">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Flag_of_Zambia.svg/1200px-Flag_of_Zambia.svg.png" className="w-16 h-10 mx-auto mb-4 opacity-20 object-cover rounded-md" alt="Zambia" />
+                    <h3 className="text-xl font-bold text-[#0e633d] uppercase">Select a Wing</h3>
+                    <p className="text-slate-400 text-sm font-medium">Choose a section to begin booking.</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* RIGHT COLUMN: BOOKING SUMMARY */}
+          {/* RIGHT COLUMN: BOOKING SUMMARY (Sticky) */}
           <div className="lg:col-span-4">
-            <Card className="sticky top-24 border-none shadow-2xl rounded-[3rem] overflow-hidden bg-white ring-1 ring-[#1A3D1D]/5">
-              <CardHeader className="bg-[#1A3D1D] py-8">
-                <CardTitle className="text-[#FF9900] text-center uppercase tracking-[0.1em] font-bold text-xl">
-                  Ticket Summary
+            <Card className="sticky top-28 border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
+              <CardHeader className="bg-[#0e633d] py-8 border-b border-white/10">
+                <CardTitle className="text-[#ef7d00] text-center uppercase tracking-[0.2em] font-black italic text-lg">
+                  Order Summary
                 </CardTitle>
               </CardHeader>
               
-              <CardContent className="p-10 space-y-10">
+              <CardContent className="p-8 space-y-8">
                 {!selectedBlock ? (
-                  <div className="text-center py-20 opacity-20">
-                    <SeatIcon className="h-20 w-20 mx-auto mb-4" />
-                    <p className="font-semibold uppercase tracking-widest text-xs">Awaiting Selection</p>
+                  <div className="text-center py-24 opacity-10">
+                    <SeatIcon className="h-16 w-16 mx-auto mb-4" />
+                    <p className="font-black uppercase tracking-widest text-[10px]">Awaiting selection</p>
                   </div>
                 ) : (
-                  <div className="animate-in slide-in-from-bottom-5 duration-700">
-                    <div className="space-y-8">
-                      {/* Section Info */}
+                  <div className="animate-in slide-in-from-right-4 duration-500">
+                    <div className="space-y-6">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selected Zone</p>
-                          <p className="text-2xl font-bold text-[#1A3D1D] leading-none">{selectedBlock.wing}</p>
-                          <Badge className="bg-[#1A3D1D]/5 text-[#1A3D1D] border-none font-bold text-[9px] uppercase">{selectedBlock.name}</Badge>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zone</p>
+                          <p className="text-2xl font-black text-[#0e633d] leading-none uppercase italic">{selectedBlock.wing}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">{selectedBlock.name}</p>
                         </div>
-                        <div className="bg-[#1A3D1D] text-white p-4 rounded-3xl text-center shadow-lg shadow-[#1A3D1D]/20">
-                           <p className="text-[8px] font-bold uppercase opacity-60">Entry</p>
-                           <p className="text-xl font-bold text-[#FF9900]">{selectedBlock.gate.split(' ')[1]}</p>
+                        <div className="bg-[#0e633d] text-white px-5 py-3 rounded-2xl text-center shadow-lg">
+                           <p className="text-[8px] font-bold uppercase opacity-60 mb-1">Gate</p>
+                           <p className="text-xl font-black text-[#ef7d00] italic">{selectedBlock.gate.split(' ')[1]}</p>
                         </div>
                       </div>
 
-                      {/* Row & Seat Selection Pill */}
                       {selectedRow && (
-                        <div className="bg-[#F8FAF8] rounded-[2.5rem] p-8 border-2 border-[#1A3D1D]/5">
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-1">
-                               <p className="text-[10px] font-bold text-slate-400 uppercase">Row</p>
-                               <p className="text-4xl font-bold text-[#1A3D1D]">{selectedRow.rowNumber}</p>
-                             </div>
-                             <div className="space-y-1 text-right">
-                               <p className="text-[10px] font-bold text-slate-400 uppercase">Seat(s)</p>
-                               <p className="text-2xl font-bold text-[#FF9900] break-words">
-                                 {selectedSeatNumbers.length > 0 ? selectedSeatNumbers.join(", ") : "—"}
-                               </p>
-                             </div>
-                          </div>
+                        <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 grid grid-cols-2 gap-4">
+                           <div>
+                             <p className="text-[9px] font-black text-slate-400 uppercase">Row</p>
+                             <p className="text-3xl font-black text-[#0e633d]">{selectedRow.rowNumber}</p>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-[9px] font-black text-slate-400 uppercase">Seats</p>
+                             <p className="text-xl font-black text-[#ef7d00]">
+                               {selectedSeatNumbers.length > 0 ? selectedSeatNumbers.join(", ") : "—"}
+                             </p>
+                           </div>
                         </div>
                       )}
 
                       <Separator className="bg-slate-100" />
 
-                      {/* Pricing Breakdown */}
-                      <div className="space-y-6">
-                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase">
-                          <span>Unit Price</span>
+                      <div className="space-y-4">
+                        <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <span>Price per seat</span>
                           <span className="text-slate-900">ZMW {selectedBlock.price.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase">
-                          <span>Quantity</span>
-                          <span className="text-slate-900">{selectedSeatNumbers.length} Seats</span>
-                        </div>
-                        <div className="pt-6 flex justify-between items-end border-t border-dashed border-slate-200">
-                           <span className="font-bold text-[#1A3D1D] text-xl uppercase tracking-tighter">Grand Total</span>
-                           <div className="text-right">
-                             <p className="text-5xl font-bold text-[#1A3D1D] tracking-tighter leading-none">
-                               K <span className="text-[#FF9900]">{totalPrice.toFixed(2)}</span>
-                             </p>
-                           </div>
+                        <div className="pt-4 flex justify-between items-end">
+                           <span className="font-black text-[#0e633d] text-lg uppercase tracking-tighter italic">Total Amount</span>
+                           <p className="text-4xl font-black text-[#0e633d] tracking-tighter">
+                             K <span className="text-[#ef7d00]">{totalPrice.toFixed(2)}</span>
+                           </p>
                         </div>
                       </div>
 
-                      {/* CTA */}
-                      <div className="space-y-4 pt-4">
-                        <Button 
-                          onClick={handleAddToCart}
-                          disabled={selectedSeatNumbers.length === 0}
-                          className="w-full h-20 rounded-[2rem] bg-[#1A3D1D] hover:bg-[#255229] text-white font-bold uppercase tracking-widest shadow-2xl shadow-[#1A3D1D]/30 transition-all active:scale-95 disabled:bg-slate-100 disabled:text-slate-300 group"
-                        >
-                          Secure Tickets
-                          <ChevronRight className="ml-2 h-6 w-6 text-[#FF9900] group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                        
-                        <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                           <ShieldCheck className="h-4 w-4 text-[#FF9900]" /> Encrypted FAZ Checkout
-                        </div>
+                      <Button 
+                        onClick={handleAddToCart}
+                        disabled={selectedSeatNumbers.length === 0}
+                        className="w-full h-16 rounded-2xl bg-[#0e633d] hover:bg-[#0a4a2e] text-white font-black uppercase italic tracking-widest shadow-xl transition-all disabled:opacity-20 group"
+                      >
+                        Secure Tickets
+                        <ChevronRight className="ml-2 h-5 w-5 text-[#ef7d00] group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                      
+                      <div className="flex items-center justify-center gap-2 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                         <ShieldCheck className="h-4 w-4 text-[#ef7d00]" /> Official FAZ Secure Portal
                       </div>
                     </div>
                   </div>

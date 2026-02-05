@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   Info,
   MapPin,
-  Loader2 // Added for the loading effect
+  Loader2 
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { useCart } from "@/contexts/CartContext";
 import { CartItem } from "@/types/ticket";
@@ -48,7 +50,7 @@ export default function Checkout() {
 
   const [momoProvider, setMomoProvider] = useState<"mtn" | "airtel" | "zamtel">("mtn");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // NEW: Processing state
+  const [isProcessing, setIsProcessing] = useState(false); 
 
   /* Guard: No cart data */
   if (cart.length === 0) {
@@ -62,12 +64,11 @@ export default function Checkout() {
   const primaryItem = cart[0];
 
   /* ==========================================
-     SIMULATED PAYMENT PAUSE
+      SIMULATED PAYMENT PAUSE
      ========================================== */
   const handleCompleteOrder = () => {
     setIsProcessing(true);
     
-    // Simulating the "Verifying Payment" pause
     setTimeout(() => {
       navigate("/payment/success", {
         state: {
@@ -77,7 +78,7 @@ export default function Checkout() {
         },
       });
       setIsProcessing(false);
-    }, 2500); // 2.5 second delay
+    }, 2500);
   };
 
   return (
@@ -180,36 +181,129 @@ export default function Checkout() {
               </div>
             </section>
 
-            <div className="p-6 bg-white rounded-2xl border border-slate-200">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="terms"
-                  checked={termsAccepted}
-                  onCheckedChange={(v) => setTermsAccepted(v as boolean)}
-                  className="mt-1 data-[state=checked]:bg-[#0e633d] data-[state=checked]:border-[#0e633d]"
-                />
-                <label htmlFor="terms" className="text-sm text-slate-500 font-medium leading-relaxed cursor-pointer">
-                  I agree to the FAZ Ticketing Terms & Conditions. I understand
-                  that tickets are digital and non-refundable once issued.
-                </label>
+            <div className="flex items-start space-x-3 py-2">
+              <Checkbox 
+                id="terms" 
+                checked={termsAccepted}
+                onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+                className="mt-1 border-slate-300 data-[state=checked]:bg-[#0e633d] data-[state=checked]:border-[#0e633d]" 
+              />
+              <label htmlFor="terms" className="text-sm text-slate-500 font-medium leading-relaxed cursor-pointer">
+                I agree to the FAZ Ticketing{" "}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button type="button" className="text-[#0e633d] hover:underline font-semibold cursor-pointer">
+                      Terms & Conditions
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl w-[90vw] p-0 overflow-hidden border-none rounded-[40px] bg-white shadow-[0_32px_64px_-15px_rgba(0,0,0,0.2)] font-inter">
+              {/* Top Branding Bar */}
+                  <div className="h-2 bg-gradient-to-r from-[#0e633d] via-[#ef7d00] to-[#0e633d]" />
+
+              <div className="p-10">
+              <DialogHeader className="mb-8 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+          <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">
+            The Fan <span className="text-[#0e633d]">Agreement</span>
+          </DialogTitle>
+          <DialogDescription className="text-slate-500 font-medium mt-1">
+            Fair play for every fan at the Stadium.
+          </DialogDescription>
+          </div>
+            <div className="hidden sm:block">
+            </div>
+          </div>
+            </DialogHeader>
+
+            {/* Agreement Content – Paragraph Style */}
+            <div className="space-y-8">
+  {[
+    {
+      title: "100% Digital Entry",
+      desc: "Your mobile phone is your official match ticket. No printed passes are required — just arrive early, keep your screen bright, and enjoy seamless entry.",
+      icon: <Smartphone className="h-5 w-5 text-[#ef7d00]" />,
+    },
+    {
+      title: "All Sales Are Final",
+      desc: "Once tickets are issued, they cannot be refunded or exchanged. Please double-check match dates, teams, and seating details before completing your purchase.",
+      icon: <CheckCircle2 className="h-5 w-5 text-[#ef7d00]" />,
+    },
+    {
+      title: "Stadium Security",
+      desc: "Entry is subject to standard safety checks at Levy Mwanawasa Stadium. Prohibited items may result in denied access for everyone’s safety.",
+      icon: <ShieldCheck className="h-5 w-5 text-[#ef7d00]" />,
+    },
+    {
+      title: "Your Data, Protected",
+      desc: "We handle your personal information responsibly and securely. Your data is used only to deliver tickets and improve your matchday experience.",
+      icon: <Lock className="h-5 w-5 text-[#ef7d00]" />,
+    },
+  ].map((item, i) => (
+    <div key={i} className="flex gap-4">
+      <div className="mt-1 flex-shrink-0">
+        <div className="w-9 h-9 rounded-full bg-[#ef7d00]/10 flex items-center justify-center">
+          {item.icon}
+        </div>
+      </div>
+
+      <div>
+        <h4 className="font-bold text-slate-900 mb-1">
+          {item.title}
+        </h4>
+        <p className="text-sm text-slate-600 leading-relaxed font-medium">
+          {item.desc}
+        </p>
+      </div>
+    </div>
+  ))}
+            </div>
+
+            {/* Footer Section */}
+              <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center overflow-hidden">
+               <div className="w-full h-full bg-[#0e633d]/10 flex items-center justify-center">
+                  <Ticket className="h-3 w-3 text-[#0e633d]" />
+               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+                <DialogTrigger asChild>
+                      <Button className="w-full sm:w-auto h-14 px-10 bg-[#0e633d] hover:bg-[#0a4a2e] text-white rounded-2xl font-bold transition-all shadow-lg active:scale-95">
+                      I Understand 
+                  </Button>
+                </DialogTrigger>
+                </div>
               </div>
+                </DialogContent>
+                </Dialog>
+                . I understand that tickets are digital and non-refundable once issued.
+              </label>
             </div>
           </div>
 
           {/* Order Summary */}
           <div className="lg:col-span-5">
             <div className="sticky top-32">
-              <Card className="rounded-[2.5rem] overflow-hidden border-none shadow-2xl">
-                <div className="bg-[#0e633d] p-8 text-white">
-                   <h2 className="text-2xl font-bold tracking-tight uppercase">Order Summary</h2>
+              <Card className="rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-2xl bg-white">
+                <div className="bg-[#0e633d] px-8 py-6">
+                  <h2 className="text-2xl font-bold tracking-tight uppercase text-white">
+                    Order Summary
+                  </h2>
                 </div>
-
                 <CardContent className="p-8 bg-white">
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900">{primaryItem.matchName}</h3>
-                      <div className="flex items-center gap-2 mt-2 text-[#0e633d] font-bold text-xs uppercase">
-                        <MapPin className="h-3.5 w-3.5" />
+                      <h3 className="text-xl font-bold text-slate-900">
+                        {primaryItem.matchName}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-2 text-[#0e633d] font-semibold text-xs uppercase">
+                        <MapPin className="h-3.5 w-3.5 text-[#ef7d00]" />
                         {primaryItem.stadium}
                       </div>
                     </div>
@@ -219,18 +313,26 @@ export default function Checkout() {
                     <div className="space-y-4 text-sm font-semibold">
                       <div className="flex justify-between text-slate-500">
                         <span>Total Tickets</span>
-                        <span className="text-slate-900">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
+                        <span className="text-slate-900">
+                          {cart.reduce((s, i) => s + i.quantity, 0)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-slate-500">
                         <span>Subtotal</span>
-                        <span className="text-slate-900">ZMW {total.toFixed(2)}</span>
+                        <span className="text-slate-900">
+                          ZMW {total.toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
                     <div className="pt-6 border-t border-slate-100">
                       <div className="flex justify-between items-center">
-                        <span className="font-bold uppercase text-[10px] tracking-widest text-slate-400">Total Amount</span>
-                        <p className="text-3xl font-black text-slate-900 tracking-tighter">ZMW {total.toFixed(2)}</p>
+                        <span className="font-bold uppercase text-[10px] tracking-widest text-slate-400">
+                          Total Amount
+                        </span>
+                        <p className="text-3xl font-black tracking-tighter">
+                          ZMW <span className="text-[#0e633d]">{total.toFixed(2)}</span>
+                        </p>
                       </div>
                     </div>
 
@@ -238,14 +340,14 @@ export default function Checkout() {
                       disabled={!termsAccepted || isProcessing}
                       onClick={handleCompleteOrder}
                       className={cn(
-                        "w-full h-16 mt-4 text-lg font-bold rounded-2xl transition-all shadow-lg active:scale-95",
+                        "w-full h-16 mt-4 text-lg font-bold rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3",
                         termsAccepted && !isProcessing
-                          ? "bg-[#0e633d] hover:bg-[#0c5233] text-white"
-                          : "bg-slate-100 text-slate-400"
+                          ? "bg-[#0e633d] hover:bg-[#0a4a2e] text-white cursor-pointer"
+                          : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-50"
                       )}
                     >
                       {isProcessing ? "Processing..." : "Complete Purchase"}
-                      {!isProcessing && <ChevronRight className="ml-2 h-5 w-5" />}
+                      {!isProcessing && <ChevronRight className={cn("h-5 w-5", termsAccepted ? "text-[#ef7d00]" : "text-slate-400")} />}
                     </Button>
                   </div>
                 </CardContent>

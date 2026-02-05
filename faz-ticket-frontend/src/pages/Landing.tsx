@@ -156,37 +156,29 @@ export default function Landing() {
     </div>
   </div>
 </section>
-        {/* Upcoming Matches Component */}
-        <section className="py-20 bg-slate-50/50">
-  <div className="container mx-auto px-4">
-    <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Live Ticketing</span>
-        </div>
-        <h2 className="text-4xl font-black uppercase italic text-slate-900 leading-none">
-          Upcoming <span className="text-[#0e633d]">Fixtures</span>
-        </h2>
-      </div>
-      
-      <div className="flex items-center gap-4">
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-tight hidden md:block">
-          Filter by Competition
-        </p>
-        {/* You could add a small filter dropdown here later */}
-        <Button variant="outline" className="rounded-full border-slate-200 font-bold uppercase text-xs px-6">
-          View All Schedule
-        </Button>
-      </div>
-    </div>
 
-    {/* This is where your <UpcomingMatches /> component or list would render */}
-    <div className="rounded-[3rem] overflow-hidden border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
-       <UpcomingMatches />
-    </div>
-  </div>
-</section>
+        {/* Upcoming Matches Component - TARGET SECTION */}
+        <section id="matches" className="py-20 bg-slate-50/50 scroll-mt-24">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Live Ticketing</span>
+                </div>
+                <h2 className="text-4xl font-black uppercase italic text-slate-900 leading-none">
+                  Upcoming <span className="text-[#0e633d]">Fixtures</span>
+                </h2>
+              </div>
+              <Button variant="outline" className="rounded-full border-slate-200 font-bold uppercase text-xs px-6">
+                View All Schedule
+              </Button>
+            </div>
+            <div className="rounded-[3rem] overflow-hidden border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+               <UpcomingMatches />
+            </div>
+          </div>
+        </section>
 
         {/* How It Works */}
         <section className="py-16 bg-secondary">
