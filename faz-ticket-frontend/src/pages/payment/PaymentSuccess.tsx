@@ -107,7 +107,7 @@ export default function PaymentSuccess() {
           <p className="text-[10px] font-black uppercase tracking-widest text-[#0e633d]/60 mb-1">
             Wing/Gate
           </p>
-          <p className="text-lg font-black text-[#0e633d]">
+          <p className="text font-black text-[#0e633d]">
             {items[0]?.zone || "NORTH WING"}
             <span className="text-[#ef7d00] ml-1">{items[0]?.gate || "9"}</span>
           </p>
@@ -117,7 +117,7 @@ export default function PaymentSuccess() {
           <p className="text-[10px] font-black uppercase tracking-widest text-[#0e633d]/60 mb-1">
             Row
           </p>
-          <p className="text-lg font-black text-[#0e633d]">
+          <p className="text font-black text-[#0e633d]">
             {items[0]?.row || "8"}
           </p>
         </div>
@@ -126,7 +126,7 @@ export default function PaymentSuccess() {
           <p className="text-[10px] font-black uppercase tracking-widest text-[#0e633d]/60 mb-1">
             Seat(s)
           </p>
-          <p className="text-lg font-black text-[#0e633d]">
+          <p className="text font-black text-[#0e633d]">
             {items[0]?.seats?.join(", ") || "19, 20"}
           </p>
         </div>
