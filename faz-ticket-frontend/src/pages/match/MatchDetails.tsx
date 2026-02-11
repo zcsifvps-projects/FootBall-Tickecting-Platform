@@ -73,14 +73,35 @@ const STADIUM_MAP = {
 export default function MatchDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { cart, addToCart } = useCart();
 
   const activeMatch = useMemo(() => ALL_MATCHES.find((m) => m.id === id) || ALL_MATCHES[0], [id]);
+
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [selectedRowNumber, setSelectedRowNumber] = useState<number | null>(null);
   const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<number[]>([]);
 
-  useEffect(() => window.scrollTo(0, 0), []);
+    /** * PERSISTENCE EFFECT
+   * Runs on mount and whenever the cart changes. 
+   * If the user has already selected tickets for this match, we restore the UI state.
+   */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+
+    const existingItem = cart.find((item) => item.matchId === activeMatch.id);
+
+    if (existingItem) {
+      // 1. Find the block by its name (e.g., "West Wing")
+      const block = STADIUM_MAP.blocks.find((b) => b.name === existingItem.zone);
+      if (block) {
+        setSelectedBlockId(block.id);
+        // 2. Set the row
+        setSelectedRowNumber(parseInt(existingItem.row));
+        // 3. Set the seats
+        setSelectedSeatNumbers(existingItem.seats.map(Number));
+      }
+    }
+  }, [activeMatch.id]); // Only run once on mount for this specific match
 
   const selectedBlock = useMemo(() => STADIUM_MAP.blocks.find((b) => b.id === selectedBlockId) || null, [selectedBlockId]);
   const selectedRow = useMemo(() => selectedBlock?.rows.find((r) => r.rowNumber === selectedRowNumber) || null, [selectedBlock, selectedRowNumber]);

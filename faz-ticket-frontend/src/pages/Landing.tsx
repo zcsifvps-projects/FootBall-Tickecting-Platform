@@ -122,48 +122,76 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Trust Badges */}
-            <section className="py-12 bg-white border-b border-slate-100">
-          <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+     {/* Trust Badges - FAZ Sporty Theme */}
+      <section className="py-14 bg-white border-y border-slate-100 font-inter">
+  <div className="container mx-auto px-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       
       {/* 100% Secure */}
-      <div className="flex items-start gap-5 group">
-        <div className="flex-shrink-0 h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 transition-colors group-hover:bg-orange-600 group-hover:text-white">
-          <Shield className="h-7 w-7" />
+      <div className="group relative overflow-hidden bg-[#0e633d]/5 p-8 border-b-4 border-[#0e633d] transition-all duration-300 hover:bg-[#0e633d]/10">
+        <div className="flex items-center gap-5">
+          <div className="flex-shrink-0">
+            {/* Sporty Square Icon with theme colors */}
+            <div className="h-14 w-14 bg-[#0e633d] flex items-center justify-center shadow-lg group-hover:bg-orange-500 transition-colors duration-300">
+              <Shield className="h-7 w-7 text-white" />
+            </div>
+          </div>
+          <div>
+            <h3 className="font-black uppercase tracking-tight text-lg text-[#0e633d]">
+              100% Secure
+            </h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
+              Bank-Grade Encryption
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-black uppercase italic text-sm tracking-wider text-slate-900">100% Secure</h3>
-          <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-            Every transaction is encrypted and verified by industry standards.
-          </p>
-        </div>
+        <p className="text-sm text-slate-600 mt-6 leading-relaxed font-medium">
+          Your payment data is shielded by protocols, ensuring every transaction is locked down.
+        </p>
       </div>
 
       {/* Easy Payments */}
-      <div className="flex items-start gap-5 group border-y md:border-y-0 md:border-x border-slate-100 py-8 md:py-0 md:px-12">
-        <div className="flex-shrink-0 h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 transition-colors group-hover:bg-orange-600 group-hover:text-white">
-          <CreditCard className="h-7 w-7" />
+      <div className="group relative overflow-hidden bg-[#0e633d]/5 p-8 border-b-4 border-orange-500 transition-all duration-300 hover:bg-[#0e633d]/10">
+        <div className="flex items-center gap-5">
+          <div className="flex-shrink-0">
+            <div className="h-14 w-14 bg-orange-500 flex items-center justify-center shadow-lg group-hover:bg-[#0e633d] transition-colors duration-300">
+              <CreditCard className="h-7 w-7 text-white" />
+            </div>
+          </div>
+          <div>
+            <h3 className="font-black uppercase tracking-tight text-lg text-[#0e633d]">
+              Fast Checkout
+            </h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
+              Mobile Money Ready
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-black uppercase italic text-sm tracking-wider text-slate-900">Easy Payments</h3>
-          <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-            Pay instantly using MTN, Airtel or Zamtel.
-          </p>
-        </div>
+        <p className="text-sm text-slate-600 mt-6 leading-relaxed font-medium">
+          Pay instantly with MTN, Airtel, or Zamtel. Built for the speed of match day.
+        </p>
       </div>
 
       {/* Instant Tickets */}
-      <div className="flex items-start gap-5 group">
-        <div className="flex-shrink-0 h-14 w-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 transition-colors group-hover:bg-orange-600 group-hover:text-white">
-          <Ticket className="h-7 w-7" />
+      <div className="group relative overflow-hidden bg-[#0e633d]/5 p-8 border-b-4 border-[#0e633d] transition-all duration-300 hover:bg-[#0e633d]/10">
+        <div className="flex items-center gap-5">
+          <div className="flex-shrink-0">
+            <div className="h-14 w-14 bg-[#0e633d] flex items-center justify-center shadow-lg group-hover:bg-orange-500 transition-colors duration-300">
+              <Ticket className="h-7 w-7 text-white" />
+            </div>
+          </div>
+          <div>
+            <h3 className="font-black uppercase tracking-tight text-lg text-[#0e633d]">
+              Digital Pass
+            </h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
+              Instant QR Delivery
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-black uppercase italic text-sm tracking-wider text-slate-900">Instant Tickets</h3>
-          <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-            Receive your digital QR ticket immediately.
-          </p>
-        </div>
+        <p className="text-sm text-slate-600 mt-6 leading-relaxed font-medium">
+          Zero queues. Your official digital ticket is generated the moment you pay.
+        </p>
       </div>
 
     </div>
