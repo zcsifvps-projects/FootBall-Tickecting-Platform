@@ -20,10 +20,14 @@ export default function Register() {
     termsAccepted: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Use this as the base URL for API requests
+  const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+  console.log("API_BASE_URL is:", API_BASE_URL);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation
+
+    // Validate terms
     if (!formData.termsAccepted) {
       toast({
         variant: "destructive",
@@ -33,6 +37,7 @@ export default function Register() {
       return;
     }
 
+    // Validate password match
     if (formData.password !== formData.confirmPassword) {
       toast({
         variant: "destructive",
@@ -42,25 +47,53 @@ export default function Register() {
       return;
     }
 
-    // TODO: Implement actual registration with Lovable Cloud
-    toast({
-      title: "Registration Successful!",
-      description: "Please check your email to verify your account.",
-    });
-    
-    navigate("/auth/verify-email");
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          mobile: formData.mobile,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Something went wrong",
+        });
+        return;
+      }
+
+      // Optionally store JWT
+      localStorage.setItem("token", data.token);
+
+      toast({
+        title: "Registration Successful!",
+        description: "Please check your email to verify your account.",
+      });
+
+      navigate("/auth/verify-email");
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Server error. Try again later.",
+      });
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-secondary to-background p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-4"
-          onClick={() => navigate("/")}
-        >
+        <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
         </Button>
@@ -170,7 +203,7 @@ export default function Register() {
                 <Checkbox
                   id="terms"
                   checked={formData.termsAccepted}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setFormData({ ...formData, termsAccepted: checked as boolean })
                   }
                 />

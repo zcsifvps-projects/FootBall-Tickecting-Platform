@@ -7,6 +7,31 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
+// Define TypeScript type for a ticket
+type Ticket = {
+  id: string;
+  match: string;
+  competition: string;
+  date: string;
+  time: string;
+  stadium: string;
+  city: string;
+  zone: string;
+  section: string;
+  row: string;
+  seats: string[];
+  quantity: number;
+  total: number;
+  orderDate: string;
+  attended?: boolean; // optional because not all tickets have it
+};
+
+// Props for TicketCard component
+type TicketCardProps = {
+  ticket: Ticket;
+  isPast?: boolean;
+};
+
 export default function MyTickets() {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [upcomingTickets, setUpcomingTickets] = useState<any[]>([]);
@@ -41,7 +66,7 @@ export default function MyTickets() {
     loadTickets();
   }, []);
 
-  const pastTickets = [
+  const pastTickets: Ticket[] = [
     {
       id: "TKT-000",
       match: "Zambia vs Kenya",
@@ -58,19 +83,21 @@ export default function MyTickets() {
     },
   ];
 
-  const TicketCard = ({ ticket, isPast = false }: any) => (
-    <div className={`relative flex flex-col md:flex-row w-full mb-6 group transition-all duration-300 ${isPast ? 'opacity-75 grayscale-[0.5]' : 'hover:scale-[1.01]'}`}>
-      {/* LEFT SIDE: MATCH INFO */}
-      <div className="flex-[2] bg-white border-2 border-slate-200 border-r-0 rounded-t-[2rem] md:rounded-l-[2rem] md:rounded-tr-none p-8 relative overflow-hidden shadow-sm">
-        <div className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-50 border-2 border-slate-200 rounded-full hidden md:block" />
-        <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-8 h-8 bg-slate-50 border-2 border-slate-200 rounded-full hidden md:block" />
-
-        <div className="flex flex-col h-full justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className="bg-[#0e633d]/10 text-[#0e633d] border-none font-black italic uppercase text-[10px]">
-                {ticket.competition}
               </Badge>
+  // TicketCard component with proper types
+  const TicketCard = ({ ticket, isPast = false }: TicketCardProps) => (
+    <Card className="group hover:shadow-md transition-all duration-300">
+      <CardContent className="p-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          {/* Ticket Details */}
+          <div className="flex-1 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold mb-1">{ticket.match}</h3>
+                <Badge variant="secondary" className="mb-3">
+                  {ticket.competition}
+                </Badge>
+              </div>
               {isPast && ticket.attended && (
                 <Badge className="bg-orange-100 text-orange-600 border-none font-black italic uppercase text-[10px]">
                   Attended

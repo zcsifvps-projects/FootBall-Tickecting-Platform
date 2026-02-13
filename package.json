@@ -1,5 +1,21 @@
 {
+  "name": "football-ticketing-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "faz-ticket-frontend",
+    "backend-faz-ticket"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace faz-ticket-frontend\" \"npm run dev --workspace backend-faz-ticket\"",
+    "install:all": "npm install --workspace faz-ticket-frontend && npm install --workspace backend-faz-ticket"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
   "dependencies": {
-    "react-world-flags": "^1.6.0"
+    "react-world-flags": "^1.6.0",
+    "cors": "^2.8.6",
+    "nodemailer": "^8.0.1"
   }
 }
