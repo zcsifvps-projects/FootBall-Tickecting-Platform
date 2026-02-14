@@ -1,52 +1,47 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-
-interface CartItem {
-  matchId: string;
-  zone: string;
-  section: string;
-  row: string;
-  seats: string[];
-  price: number;
-  quantity: number;
-}
+// src/context/CartContext.tsx
+import { createContext, useContext, useState, ReactNode, useMemo } from "react";
+import { CartItem } from "../types/ticket";
 
 interface CartContextType {
-  items: CartItem[];
+  cart: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (index: number) => void;
   updateQuantity: (index: number, quantity: number) => void;
   clearCart: () => void;
-  itemCount: number;
+  totalPrice: number;
+  itemCount: number; // 1. Add this to your interface
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  const addToCart = (item: CartItem) => {
-    setItems((prev) => [...prev, item]);
-  };
+  const addToCart = (item: CartItem) => setCart((prev) => [...prev, item]);
+  
+  const removeFromCart = (index: number) =>
+    setCart((prev) => prev.filter((_, i) => i !== index));
 
-  const removeFromCart = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateQuantity = (index: number, quantity: number) => {
-    setItems((prev) =>
+  const updateQuantity = (index: number, quantity: number) =>
+    setCart((prev) =>
       prev.map((item, i) => (i === index ? { ...item, quantity } : item))
     );
-  };
 
-  const clearCart = () => {
-    setItems([]);
-  };
+  const clearCart = () => setCart([]);
 
-  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  // 2. Calculate the total number of items (sum of all quantities)
+  const itemCount = useMemo(() => 
+    cart.reduce((acc, item) => acc + item.quantity, 0), 
+  [cart]);
+
+  const totalPrice = useMemo(() => 
+    cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), 
+  [cart]);
 
   return (
     <CartContext.Provider
-      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, itemCount }}
+      // 3. Pass itemCount into the value
+      value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, totalPrice, itemCount }}
     >
       {children}
     </CartContext.Provider>
@@ -55,8 +50,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within CartProvider");
-  }
+  if (!context) throw new Error("useCart must be used within CartProvider");
   return context;
 };

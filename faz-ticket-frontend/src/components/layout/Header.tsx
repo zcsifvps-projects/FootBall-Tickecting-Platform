@@ -27,13 +27,23 @@ export const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">FAZ</span>
-            </div>
-            <span className="hidden sm:block font-bold text-lg text-foreground">E-Tickets</span>
+      <Link to="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+          <div className="h-12 w-12 flex items-center justify-center">
+        <img 
+        src="https://res.cloudinary.com/dceqpo559/image/upload/v1769602379/faz_logo_cl3wx5.png" 
+        alt="FAZ Logo" 
+        className="h-full w-full object-contain"
+          />
+          </div>
+          <div className="flex flex-col -space-y-1">
+          <span className="font-black text-2xl tracking-tighter text-slate-900 uppercase italic">
+            FAZ<span className="text-[#0e633d]">TICKETING</span>
+          </span>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] ml-0.5">
+            Official Platform
+          </span>
+        </div>
           </Link>
-
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link to="/matches" className="text-sm font-medium hover:text-primary transition-colors">

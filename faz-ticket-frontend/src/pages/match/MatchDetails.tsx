@@ -1,19 +1,14 @@
-// src/pages/match/MatchDetails.tsx
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Calendar,
   MapPin,
   Clock,
-  Users,
-  Shield,
   ChevronRight,
-  Minus,
-  Plus,
-  AlertTriangle,
   Rows as RowsIcon,
-  SquareStack,
-  Armchair as SeatIcon, // <-- replace Seat with Armchair
+  Armchair as SeatIcon,
+  Target,
+  ShieldCheck,
 } from "lucide-react";
 
 import { Header } from "@/components/layout/Header";
@@ -24,573 +19,368 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
+import { CartItem } from "@/types/ticket";
 
 /** =========================================================================
- *  DATA MODEL
+ * MOCK DATA & CONFIG
  * ========================================================================= */
-type SeatStatus = "available" | "held" | "sold";
-type Seat = {
-  seatNumber: number;
-  status: SeatStatus;
-};
-type Row = {
-  rowNumber: number; // 1..N
-  seats: Seat[];     // 1..M
-};
-type BlockId = string;
+const ALL_MATCHES = [
+  {
+    id: "1",
+    homeTeam: "Zambia",
+    awayTeam: "Malawi",
+    venue: "Levy Mwanawasa Stadium",
+    city: "Ndola",
+    date: "Jan 25, 2026",
+    time: "15:00 CAT",
+    category: "World Cup Qualifier",
+  },
+];
+
+type SeatStatus = "available" | "sold";
+type Seat = { seatNumber: number; status: SeatStatus };
+type Row = { rowNumber: number; seats: Seat[] };
 type Block = {
-  id: BlockId; // e.g. A1
+  id: string;
   name: string;
-  stand: "West" | "East" | "North" | "South" | "VIP";
-  category: "VIP" | "Covered" | "East" | "West" | "North" | "South" | "General";
-  color: string; // Tailwind bg token
-  price: number; // ZMW per seat
+  wing: "West Wing" | "East Wing" | "North Wing" | "South Wing" | "VIP Grandstand";
+  gate: string;
+  price: number;
   rows: Row[];
 };
-type StadiumMap = {
-  stadiumName: string;
-  city: string;
-  blocks: Block[];
-};
 
-/** Utility to generate a block with R rows and S seats per row */
-const makeBlock = (
-  id: BlockId,
-  name: string,
-  stand: Block["stand"],
-  category: Block["category"],
-  color: string,
-  price: number,
-  rowsCount: number,
-  seatsPerRow: number,
-  soldRule?: (row: number, seat: number) => boolean
-): Block => {
-  const rows: Row[] = Array.from({ length: rowsCount }, (_, r) => {
-    const rowNumber = r + 1;
-    const seats: Seat[] = Array.from({ length: seatsPerRow }, (_, s) => {
-      const seatNumber = s + 1;
-      const isSold = soldRule?.(rowNumber, seatNumber) ?? false;
-      return { seatNumber, status: isSold ? "sold" : "available" };
-    });
-    return { rowNumber, seats };
-  });
-  return { id, name, stand, category, color, price, rows };
-};
+const makeBlock = (id: string, name: string, wing: Block["wing"], gate: string, price: number, rowsCount: number, seatsPerRow: number): Block => ({
+  id, name, wing, gate, price,
+  rows: Array.from({ length: rowsCount }, (_, r) => ({
+    rowNumber: r + 1,
+    seats: Array.from({ length: seatsPerRow }, (_, s) => ({
+      seatNumber: s + 1,
+      status: Math.random() > 0.85 ? "sold" : "available",
+    })),
+  })),
+});
 
-/** -------------------------------------------------------------------------
- * MOCK: Levy Mwanawasa Stadium map
- * --------------------------------------------------------------------------*/
-const LEVY_MWANAWASA_MAP: StadiumMap = {
-  stadiumName: "Levy Mwanawasa Stadium",
-  city: "Ndola",
+const STADIUM_MAP = {
   blocks: [
-    // VIP (center)
-    makeBlock("A1", "VIP A1", "VIP", "VIP", "bg-amber-500", 200, 16, 18, (row, seat) => row === 5 && seat <= 2),
-    makeBlock("A2", "VIP A2", "VIP", "VIP", "bg-amber-500", 200, 16, 18),
-    makeBlock("A3", "VIP A3", "VIP", "VIP", "bg-amber-500", 200, 16, 18, (row, seat) => row === 10 && seat >= 17),
-
-    // Covered West
-    makeBlock("B1", "Covered B1", "West", "Covered", "bg-emerald-500", 120, 20, 20),
-    makeBlock("B2", "Covered B2", "West", "Covered", "bg-emerald-500", 120, 20, 20),
-    makeBlock("B3", "Covered B3", "West", "Covered", "bg-emerald-500", 120, 20, 20),
-    makeBlock("B4", "Covered B4", "West", "Covered", "bg-emerald-500", 120, 20, 20),
-
-    // East stand
-    makeBlock("C1", "East C1", "East", "East", "bg-green-500", 80, 22, 26),
-    makeBlock("C2", "East C2", "East", "East", "bg-green-500", 80, 22, 26, (row, seat) => row <= 2 && seat <= 5),
-    makeBlock("C3", "East C3", "East", "East", "bg-green-500", 80, 22, 26),
-    makeBlock("C4", "East C4", "East", "East", "bg-green-500", 80, 22, 26),
-    makeBlock("C5", "East C5", "East", "East", "bg-green-500", 80, 22, 26),
-
-    // North & South
-    makeBlock("D1", "North D1", "North", "North", "bg-blue-500", 60, 18, 28),
-    makeBlock("D2", "North D2", "North", "North", "bg-blue-500", 60, 18, 28),
-    makeBlock("D3", "North D3", "North", "North", "bg-blue-500", 60, 18, 28),
-
-    makeBlock("E1", "South E1", "South", "South", "bg-indigo-500", 60, 18, 28),
-    makeBlock("E2", "South E2", "South", "South", "bg-indigo-500", 60, 18, 28),
-    makeBlock("E3", "South E3", "South", "South", "bg-indigo-500", 60, 18, 28),
-
-    // General Admission (modeled with rows for consistency)
-    makeBlock("GA", "General Admission", "East", "General", "bg-gray-400", 50, 12, 40, (row) => row <= 1),
+    makeBlock("VIP-C", "VIP Central", "VIP Grandstand", "Gate 1", 500, 6, 12),
+    makeBlock("WW-L", "West Wing", "West Wing", "Gate 12", 250, 8, 15),
+    makeBlock("EW-L", "East Wing", "East Wing", "Gate 6", 200, 10, 20),
+    makeBlock("NW-U", "North Wing", "North Wing", "Gate 9", 150, 12, 20),
+    makeBlock("SW-U", "South Wing", "South Wing", "Gate 3", 100, 12, 20),
   ],
 };
 
 export default function MatchDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { cart, addToCart } = useCart();
 
-  // In production: fetch by matchId (and return its seat map)
-  const match = {
-    id: id || "1",
-    homeTeam: "Zambia",
-    awayTeam: "Malawi",
-    competition: "World Cup Qualifier",
-    date: "Sat, 25 Jan 2025",
-    time: "15:00",
-    stadium: LEVY_MWANAWASA_MAP.stadiumName,
-    city: LEVY_MWANAWASA_MAP.city,
-    description:
-      "Don't miss this crucial World Cup qualifier as Zambia faces Malawi at Levy Mwanawasa Stadium. Be part of history!",
-  };
+  const activeMatch = useMemo(() => ALL_MATCHES.find((m) => m.id === id) || ALL_MATCHES[0], [id]);
 
-  const stadiumMap = LEVY_MWANAWASA_MAP;
-
-  /** ---------- Selection State ---------- */
-  const [selectedBlockId, setSelectedBlockId] = useState<BlockId | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [selectedRowNumber, setSelectedRowNumber] = useState<number | null>(null);
   const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<number[]>([]);
 
-  const HARD_MAX_PER_ORDER = 10;
+    /** * PERSISTENCE EFFECT
+   * Runs on mount and whenever the cart changes. 
+   * If the user has already selected tickets for this match, we restore the UI state.
+   */
+  useEffect(() => {
+    window.scrollTo(0, 0);
 
-  const selectedBlock = useMemo(
-    () => stadiumMap.blocks.find((b) => b.id === selectedBlockId) || null,
-    [stadiumMap.blocks, selectedBlockId]
-  );
+    const existingItem = cart.find((item) => item.matchId === activeMatch.id);
 
-  const selectedRow = useMemo(() => {
-    if (!selectedBlock || selectedRowNumber == null) return null;
-    return selectedBlock.rows.find((r) => r.rowNumber === selectedRowNumber) || null;
-  }, [selectedBlock, selectedRowNumber]);
+    if (existingItem) {
+      // 1. Find the block by its name (e.g., "West Wing")
+      const block = STADIUM_MAP.blocks.find((b) => b.name === existingItem.zone);
+      if (block) {
+        setSelectedBlockId(block.id);
+        // 2. Set the row
+        setSelectedRowNumber(parseInt(existingItem.row));
+        // 3. Set the seats
+        setSelectedSeatNumbers(existingItem.seats.map(Number));
+      }
+    }
+  }, [activeMatch.id]); // Only run once on mount for this specific match
 
-  const blockAvailableCount = (b: Block) =>
-    b.rows.reduce((acc, r) => acc + r.seats.filter((s) => s.status === "available").length, 0);
+  const selectedBlock = useMemo(() => STADIUM_MAP.blocks.find((b) => b.id === selectedBlockId) || null, [selectedBlockId]);
+  const selectedRow = useMemo(() => selectedBlock?.rows.find((r) => r.rowNumber === selectedRowNumber) || null, [selectedBlock, selectedRowNumber]);
 
-  const selectedBlockAvailable = selectedBlock ? blockAvailableCount(selectedBlock) : 0;
+  const totalPrice = selectedBlock?.price && selectedSeatNumbers.length ? selectedBlock.price * selectedSeatNumbers.length : 0;
 
   const toggleSeat = (seatNumber: number) => {
-    if (!selectedRow) return;
-    const seat = selectedRow.seats.find((s) => s.seatNumber === seatNumber);
-    if (!seat || seat.status !== "available") return;
-
-    setSelectedSeatNumbers((prev) => {
-      const exists = prev.includes(seatNumber);
-      if (exists) return prev.filter((n) => n !== seatNumber);
-      if (prev.length >= HARD_MAX_PER_ORDER) {
-        toast({
-          variant: "destructive",
-          title: `Max ${HARD_MAX_PER_ORDER} seats`,
-          description: "You reached the ticket limit per order.",
-        });
-        return prev;
-      }
-      return [...prev, seatNumber].sort((a, b) => a - b);
-    });
+    setSelectedSeatNumbers((prev) =>
+      prev.includes(seatNumber) ? prev.filter((n) => n !== seatNumber) : [...prev, seatNumber].sort((a, b) => a - b)
+    );
   };
-
-  const onSelectBlock = (blockId: BlockId) => {
-    if (blockId === selectedBlockId) return;
-    setSelectedBlockId(blockId);
-    setSelectedRowNumber(null);
-    setSelectedSeatNumbers([]);
-  };
-
-  const onSelectRow = (rowNumber: number) => {
-    if (rowNumber === selectedRowNumber) return;
-    setSelectedRowNumber(rowNumber);
-    setSelectedSeatNumbers([]);
-  };
-
-  const totalPrice = selectedBlock ? selectedBlock.price * selectedSeatNumbers.length : 0;
 
   const handleAddToCart = () => {
     if (!selectedBlock || !selectedRow || selectedSeatNumbers.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Select seats",
-        description: "Choose a block, a row, and one or more seats.",
-      });
+      toast({ variant: "destructive", title: "Incomplete Selection", description: "Please pick your block, row, and seats." });
       return;
     }
 
-    addToCart({
-      matchId: match.id,
-      zone: `${selectedBlock.name}`,          // e.g., "VIP A2"
-      section: selectedBlock.id,             // e.g., "A2"
-      row: String(selectedRow.rowNumber),    // e.g., "12"
-      seats: selectedSeatNumbers.map(String),// ["14","15",...]
+    const cartItem: CartItem = {
+      matchId: activeMatch.id,
+      matchName: `${activeMatch.homeTeam} vs ${activeMatch.awayTeam}`,
+      date: `${activeMatch.date} ${activeMatch.time}`,
+      stadium: `${activeMatch.venue}, ${activeMatch.city}`,
+      zone: selectedBlock.name,
+      gate: selectedBlock.gate,
+      row: selectedRow.rowNumber.toString(),
+      seats: selectedSeatNumbers.map(String),
       price: selectedBlock.price,
       quantity: selectedSeatNumbers.length,
-    });
+    };
 
-    toast({
-      title: "Added to Cart!",
-      description: `${selectedSeatNumbers.length} seat(s) from ${selectedBlock.name} row ${selectedRow.rowNumber} added.`,
-    });
-
+    addToCart(cartItem);
+    toast({ title: "Added to Cart", description: `${cartItem.quantity} seats reserved.` });
     navigate("/cart");
   };
 
-  const byStand = useMemo(() => {
-    const groups: Record<Block["stand"], Block[]> = { VIP: [], West: [], East: [], North: [], South: [] };
-    stadiumMap.blocks.forEach((b) => groups[b.stand].push(b));
-    const sorter = (a: Block, b: Block) => a.id.localeCompare(b.id, undefined, { numeric: true });
-    (Object.keys(groups) as (keyof typeof groups)[]).forEach((k) => groups[k].sort(sorter));
-    return groups;
-  }, [stadiumMap.blocks]);
-
-  const lowStock =
-    selectedBlock &&
-    selectedBlockAvailable > 0 &&
-    selectedBlockAvailable <= 50;
-
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#FDFDFD] font-sans">
       <Header />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
-        {/* Match Header */}
-        <div className="mb-8">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/All-Matches")} className="mb-4">
-            ← Back to Matches
-          </Button>
-
-          <Card className="overflow-hidden">
-            <div className="bg-gradient-to-br from-primary to-primary-hover p-8 text-primary-foreground">
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="accent" className="font-bold">
-                  {match.competition}
+      
+      {/* Hero Match Header */}
+        <div className="relative rounded-[2.5rem] overflow-hidden mb-10 shadow-2xl h-[400px]">
+          {/* Green overlay removed for maximum image visibility */}
+            <img 
+                src="https://res.cloudinary.com/dceqpo559/image/upload/v1770295140/fb_image_a6tiqe.jpg" 
+                className="absolute inset-0 w-full h-full object-cover" 
+                  alt="Chipolopolo Zambia" 
+                    />
+  
+                <div className="relative z-20 p-8 md:p-12 h-full flex flex-col justify-end">
+              <Badge className="bg-[#FF9900] text-white border-none mb-4 px-6 py-1 w-fit font-semibold shadow-lg uppercase tracking-wider">
+                World Cup Qualifier
                 </Badge>
-              </div>
-
-              {/* Teams */}
-              <div className="flex items-center justify-center gap-8 mb-6">
-                <div className="text-center">
-                  <div className="w-24 h-24 mx-auto mb-3 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                    <span className="text-4xl font-bold">{match.homeTeam.substring(0, 3).toUpperCase()}</span>
-                  </div>
-                  <h2 className="text-2xl font-bold">{match.homeTeam}</h2>
-                </div>
-
-                <div className="text-3xl font-bold">VS</div>
-
-                <div className="text-center">
-                  <div className="w-24 h-24 mx-auto mb-3 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                    <span className="text-4xl font-bold">{match.awayTeam.substring(0, 3).toUpperCase()}</span>
-                  </div>
-                  <h2 className="text-2xl font-bold">{match.awayTeam}</h2>
-                </div>
-              </div>
-
-              {/* Match Info */}
-              <div className="flex flex-wrap justify-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  <span>{match.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  <span>{match.time}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  <span>
-                    {match.stadium}, {match.city}
+    
+    {/* Added drop-shadow to text to keep it readable against the bright image */}
+    <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+      Zambia <span className="text-[#FF9900]">vs</span> Malawi
+    </h1>
+    
+    <div className="flex flex-wrap gap-8 text-white font-medium text-sm md:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+      <span className="flex items-center gap-2">
+        <Calendar className="h-5 w-5 text-[#FF9900]" /> Jan 25, 2026
+      </span>
+      <span className="flex items-center gap-2">
+        <Clock className="h-5 w-5 text-[#FF9900]" /> 15:00 CAT
+      </span>
+      <span className="flex items-center gap-2">
+        <MapPin className="h-5 w-5 text-[#FF9900]" /> Levy Mwanawasa, Ndola
                   </span>
                 </div>
               </div>
-            </div>
+          </div>
 
-            <CardContent className="p-6">
-              <p className="text-muted-foreground">{match.description}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Seat Selection */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Choose Your Seats
+      <main className="flex-1 container mx-auto px-4 -mt-8 pb-20 relative z-20">
+        <div className="grid lg:grid-cols-12 gap-8">
+          
+          {/* LEFT COLUMN: SEATING MAP */}
+          <div className="lg:col-span-8 space-y-6">
+            <Card className="border-none shadow-xl overflow-hidden rounded-[2.5rem] bg-white">
+              <CardHeader className="bg-[#0e633d] py-4 px-8">
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Target className="h-5 w-5 text-[#ef7d00]" /> 
+                  <span className="tracking-tight font-bold uppercase italic text-sm">Select Seating Experience</span>
                 </CardTitle>
               </CardHeader>
-
-              <CardContent className="space-y-6">
-                {/* Diagram legend header */}
-                <div className="text-center">
-                  <div className="inline-block bg-muted px-6 py-2 rounded-full text-sm font-semibold">PITCH</div>
+              
+              <CardContent className="p-0">
+                {/* Wing Selection */}
+                <div className="bg-slate-50/50 p-4 grid grid-cols-2 md:grid-cols-5 gap-3 border-b border-slate-100">
+                  {STADIUM_MAP.blocks.map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => { setSelectedBlockId(b.id); setSelectedRowNumber(null); setSelectedSeatNumbers([]); }}
+                      className={`flex flex-col items-start p-3 rounded-2xl transition-all duration-300 text-left border-2 ${
+                        selectedBlockId === b.id 
+                        ? "bg-white border-[#0e633d] shadow-md scale-[1.02]" 
+                        : "bg-white/5 border-transparent hover:border-slate-200"
+                      }`}
+                    >
+                      <p className={`font-black text-[10px] uppercase tracking-tight mb-0.5 ${selectedBlockId === b.id ? "text-[#0e633d]" : "text-slate-500"}`}>
+                        {b.wing}
+                      </p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{b.gate}</p>
+                      <p className="mt-1 text-[#ef7d00] font-black text-xs italic">K{b.price}</p>
+                    </button>
+                  ))}
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-5">
-                  {/* Stand & Block selection */}
-                  <div className="space-y-5">
-                    {(["VIP", "West", "East", "North", "South"] as const).map((standKey) => {
-                      const blocks = byStand[standKey];
-                      if (!blocks || blocks.length === 0) return null;
+                {selectedBlock ? (
+                  <div className="bg-[#0e633d] p-6 md:p-10 relative overflow-hidden min-h-[500px] flex flex-col">
+                    {/* Legend */}
+                    <div className="flex flex-wrap justify-between items-center mb-8 gap-4 z-20">
+                      <div className="flex gap-4 bg-black/40 p-3 rounded-xl backdrop-blur-md border border-white/10">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-white" />
+                          <span className="text-[9px] font-semibold text-white uppercase">Available</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-[#FF9900]" />
+                          <span className="text-[9px] font-semibold text-white uppercase">Selected</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-white/10" />
+                          <span className="text-[9px] font-semibold text-white/30 uppercase">Sold</span>
+                        </div>
+                      </div>
 
-                      return (
-                        <div key={standKey} className="rounded-lg border bg-white p-4">
-                          <div className="mb-3 flex items-center gap-2">
-                            <SquareStack className="h-4 w-4 text-muted-foreground" />
-                            <h4 className="font-semibold">{standKey} Stand</h4>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {blocks.map((b) => {
-                              const available = blockAvailableCount(b);
-                              const selected = selectedBlockId === b.id;
-                              const disabled = available === 0;
+                      {selectedRow && (
+                        <Badge className="bg-[#FF9900] text-white border-none px-3 py-1 text-[10px] font-semibold">
+                          {selectedRow.seats.filter(s => s.status === 'available').length} SEATS REMAINING
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Perspective Seating Grid */}
+                    <div style={{ perspective: '1500px' }} className="flex-1 flex flex-col justify-center">
+                      <div style={{ transform: 'rotateX(10deg)' }} className="flex flex-col items-center">
+                        
+                        {/* Row Selection Circle Buttons */}
+                        <div className="flex flex-wrap justify-center gap-3 mb-10">
+                          {selectedBlock.rows.map((r) => (
+                            <button
+                              key={r.rowNumber}
+                              onClick={() => { setSelectedRowNumber(r.rowNumber); setSelectedSeatNumbers([]); }}
+                              className={`w-10 h-10 rounded-full font-bold text-xs transition-all border-2 flex items-center justify-center ${
+                                selectedRowNumber === r.rowNumber 
+                                ? "bg-[#FF9900] border-[#FF9900] text-white shadow-lg scale-110" 
+                                : "bg-white/5 border-white/10 text-white/40 hover:text-white"
+                              }`}
+                            >
+                              R{r.rowNumber}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Interactive Seat Layout */}
+                        {selectedRow ? (
+                          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
+                            {selectedRow.seats.map((s) => {
+                              const isSelected = selectedSeatNumbers.includes(s.seatNumber);
+                              const isSold = s.status === "sold";
                               return (
                                 <button
-                                  key={b.id}
-                                  onClick={() => !disabled && onSelectBlock(b.id)}
-                                  disabled={disabled}
-                                  className={`rounded-md border px-3 py-2 text-left transition ${
-                                    selected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-primary/50"
-                                  } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
-                                  title={`${b.name} • ${available} available • ZMW ${b.price.toFixed(2)}`}
+                                  key={s.seatNumber}
+                                  disabled={isSold}
+                                  onClick={() => toggleSeat(s.seatNumber)}
+                                  className={`relative w-10 h-12 rounded-t-xl transition-all border-b-[4px] flex items-center justify-center font-bold text-[10px] ${
+                                    isSold 
+                                    ? "bg-white/5 border-white/5 opacity-10 cursor-not-allowed" 
+                                    : isSelected 
+                                      ? "bg-[#FF9900] border-[#CC7A00] -translate-y-2 shadow-lg text-white" 
+                                      : "bg-white border-slate-300 text-[#0e633d]"
+                                  }`}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span className={`inline-block h-3.5 w-3.5 rounded ${b.color}`} />
-                                    <span className="font-medium">{b.id}</span>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">{b.name}</div>
-                                  <div className="mt-1 text-xs">
-                                    <span className="font-semibold">ZMW {b.price.toFixed(2)}</span>{" "}
-                                    <span className="text-muted-foreground">• {available} left</span>
-                                  </div>
+                                  {s.seatNumber}
                                 </button>
                               );
                             })}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Row + Seat grid */}
-                  <div className="space-y-4">
-                    {/* Row selector */}
-                    <div className="rounded-lg border bg-white p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <RowsIcon className="h-4 w-4 text-muted-foreground" />
-                        <h4 className="font-semibold">Row</h4>
-                      </div>
-
-                      {!selectedBlock ? (
-                        <p className="text-sm text-muted-foreground">Pick a block first to see rows.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedBlock.rows.map((r) => {
-                            const rowAvail = r.seats.filter((s) => s.status === "available").length;
-                            const selected = selectedRowNumber === r.rowNumber;
-                            const disabled = rowAvail === 0;
-                            return (
-                              <button
-                                key={r.rowNumber}
-                                onClick={() => !disabled && onSelectRow(r.rowNumber)}
-                                disabled={disabled}
-                                className={`rounded-md border px-3 py-1.5 text-sm transition ${
-                                  selected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-primary/50"
-                                } ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
-                                title={`Row ${r.rowNumber} • ${rowAvail} available`}
-                              >
-                                Row {r.rowNumber}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Seat grid */}
-                    <div className="rounded-lg border bg-white p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <SeatIcon className="h-4 w-4 text-muted-foreground" />
-                        <h4 className="font-semibold">Seats</h4>
-                      </div>
-
-                      {!selectedRow ? (
-                        <p className="text-sm text-muted-foreground">Choose a row to pick seats.</p>
-                      ) : (
-                        <div className="grid grid-cols-8 sm:grid-cols-12 gap-2">
-                          {selectedRow.seats.map((s) => {
-                            const isSelected = selectedSeatNumbers.includes(s.seatNumber);
-                            const isSold = s.status !== "available";
-                            return (
-                              <button
-                                key={s.seatNumber}
-                                onClick={() => toggleSeat(s.seatNumber)}
-                                disabled={isSold}
-                                className={`h-8 rounded text-xs font-medium border transition ${
-                                  isSold
-                                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                    : isSelected
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "bg-white hover:border-primary/50"
-                                }`}
-                                title={`Seat ${s.seatNumber} • ${s.status}`}
-                              >
-                                {s.seatNumber}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Hints */}
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
-                        <span className="inline-flex items-center gap-1">
-                          <span className="h-3 w-3 rounded bg-primary inline-block" />
-                          Selected
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <span className="h-3 w-3 rounded bg-white border inline-block" />
-                          Available
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <span className="h-3 w-3 rounded bg-muted inline-block" />
-                          Unavailable
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Low stock note */}
-                    {lowStock && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm inline-flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4" />
-                        Seats in this block are running low.
-                      </div>
-                    )}
-
-                    {/* Security note */}
-                    <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-start gap-3">
-                      <Shield className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-semibold text-success mb-1">Secure Purchase Guarantee</p>
-                        <p className="text-muted-foreground">
-                          Your selection will be held for a short time at checkout. Each ticket has a unique QR code for
-                          one-time entry.
-                        </p>
+                        ) : (
+                          <div className="py-12 text-center space-y-3">
+                             <RowsIcon className="h-12 w-12 text-white/10 mx-auto" />
+                             <p className="text-white/40 font-semibold uppercase tracking-[0.2em] text-[9px]">Select a row to view seats</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="py-20 text-center bg-white">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Flag_of_Zambia.svg/1200px-Flag_of_Zambia.svg.png" className="w-16 h-10 mx-auto mb-4 opacity-20 object-cover rounded-md" alt="Zambia" />
+                    <h3 className="text-xl font-bold text-[#0e633d] uppercase">Select a Wing</h3>
+                    <p className="text-slate-400 text-sm font-medium">Choose a section to begin booking.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+          {/* RIGHT COLUMN: BOOKING SUMMARY (Sticky) */}
+          <div className="lg:col-span-4">
+            <Card className="sticky top-28 border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
+              <CardHeader className="bg-[#0e633d] py-8 border-b border-white/10">
+                <CardTitle className="text-[#ef7d00] text-center uppercase tracking-[0.2em] font-black italic text-lg">
+                  Order Summary
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              
+              <CardContent className="p-8 space-y-8">
                 {!selectedBlock ? (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-muted-foreground">Pick a block, row and seats to continue.</p>
+                  <div className="text-center py-24 opacity-10">
+                    <SeatIcon className="h-16 w-16 mx-auto mb-4" />
+                    <p className="font-black uppercase tracking-widest text-[10px]">Awaiting selection</p>
                   </div>
                 ) : (
-                  <>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Selection</p>
-                      <div className="font-bold text-lg">{selectedBlock.name}</div>
+                  <div className="animate-in slide-in-from-right-4 duration-500">
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zone</p>
+                          <p className="text-2xl font-black text-[#0e633d] leading-none">{selectedBlock.wing}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{selectedBlock.name}</p>
+                        </div>
+                        <div className="bg-[#0e633d] text-white px-5 py-3 rounded-2xl text-center shadow-lg">
+                           <p className="text-[8px] font-bold uppercase opacity-60 mb-1">Gate</p>
+                           <p className="text-xl font-black text-[#ef7d00] italic">{selectedBlock.gate.split(' ')[1]}</p>
+                        </div>
+                      </div>
+
                       {selectedRow && (
-                        <div className="text-sm text-muted-foreground">
-                          Row {selectedRow.rowNumber}
-                          {selectedSeatNumbers.length > 0 && (
-                            <>
-                              {" • Seats "}
-                              {selectedSeatNumbers.join(", ")}
-                            </>
-                          )}
+                        <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 grid grid-cols-2 gap-4">
+                           <div>
+                             <p className="text-[9px] font-black text-slate-400 uppercase">Row</p>
+                             <p className="text-3xl font-black text-[#0e633d]">{selectedRow.rowNumber}</p>
+                           </div>
+                           <div className="text-right">
+                             <p className="text-[9px] font-black text-slate-400 uppercase">Seats</p>
+                             <p className="text-xl font-black text-[#ef7d00]">
+                               {selectedSeatNumbers.length > 0 ? selectedSeatNumbers.join(", ") : "—"}
+                             </p>
+                           </div>
                         </div>
                       )}
-                      <div className="text-sm text-muted-foreground">
-                        ZMW {selectedBlock.price.toFixed(2)} per ticket
+
+                      <Separator className="bg-slate-100" />
+
+                      <div className="space-y-4">
+                        <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <span>Price per seat</span>
+                          <span className="text-slate-900">ZMW {selectedBlock.price.toFixed(2)}</span>
+                        </div>
+                        <div className="pt-4 flex justify-between items-end">
+                           <span className="font-black text-[#0e633d] text-lg uppercase">Total Amount</span>
+                           <p className="text-2xl font-black text-[#0e633d] tracking-tighter">
+                             K <span className="text-[#ef7d00]">{totalPrice.toFixed(2)}</span>
+                           </p>
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={handleAddToCart}
+                        disabled={selectedSeatNumbers.length === 0}
+                        className="w-full h-16 rounded-2xl bg-[#0e633d] hover:bg-[#0a4a2e] text-white font-black uppercase italic tracking-widest shadow-xl transition-all disabled:opacity-20 group"
+                      >
+                        Secure Tickets
+                        <ChevronRight className="ml-2 h-5 w-5 text-[#ef7d00] group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                      
+                      <div className="flex items-center justify-center gap-2 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                         <ShieldCheck className="h-4 w-4 text-[#ef7d00]" /> Official FAZ Secure Portal
                       </div>
                     </div>
-
-                    <Separator />
-
-                    {/* Seats selected (derived) */}
-                    <div>
-                      <p className="text-sm font-semibold mb-3">Seats Selected</p>
-                      <div className="flex items-center gap-4">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            setSelectedSeatNumbers((prev) => prev.slice(0, Math.max(0, prev.length - 1)))
-                          }
-                          disabled={selectedSeatNumbers.length === 0}
-                          title="Remove last selected seat"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="text-2xl font-bold w-12 text-center">
-                          {selectedSeatNumbers.length}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            if (!selectedRow) return;
-                            const next = selectedRow.seats.find(
-                              (s) => s.status === "available" && !selectedSeatNumbers.includes(s.seatNumber)
-                            );
-                            if (!next) return;
-                            if (selectedSeatNumbers.length >= HARD_MAX_PER_ORDER) {
-                              toast({
-                                variant: "destructive",
-                                title: `Max ${HARD_MAX_PER_ORDER} seats`,
-                                description: "You reached the ticket limit per order.",
-                              });
-                              return;
-                            }
-                            setSelectedSeatNumbers((prev) => [...prev, next.seatNumber].sort((a, b) => a - b));
-                          }}
-                          disabled={!selectedRow || selectedSeatNumbers.length >= HARD_MAX_PER_ORDER}
-                          title="Quick add next available seat"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">Max {HARD_MAX_PER_ORDER} per order</p>
-                    </div>
-
-                    <Separator />
-
-                    {/* Price Breakdown */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-semibold">ZMW {totalPrice.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Booking Fee</span>
-                        <span className="font-semibold">ZMW {(totalPrice * 0.05).toFixed(2)}</span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>Total</span>
-                        <span className="text-primary">ZMW {(totalPrice * 1.05).toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="hero"
-                      size="lg"
-                      className="w-full"
-                      onClick={handleAddToCart}
-                      disabled={selectedSeatNumbers.length === 0}
-                    >
-                      Add to Cart
-                      <ChevronRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

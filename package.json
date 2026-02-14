@@ -14,6 +14,7 @@
     "concurrently": "^8.2.0"
   },
   "dependencies": {
+    "react-world-flags": "^1.6.0",
     "cors": "^2.8.6",
     "nodemailer": "^8.0.1"
   }
