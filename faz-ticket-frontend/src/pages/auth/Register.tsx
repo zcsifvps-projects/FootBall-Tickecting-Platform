@@ -73,6 +73,8 @@ export default function Register() {
 
       // Optionally store JWT
       localStorage.setItem("token", data.token);
+      // Save pending email for verification step
+      localStorage.setItem("pendingEmail", formData.email);
 
       toast({
         title: "Registration Successful!",

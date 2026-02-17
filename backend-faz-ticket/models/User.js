@@ -9,6 +9,9 @@ const userSchema = new mongoose.Schema({
   mobile:    { type: String },
   password:  { type: String, required: true },
   googleId:  { type: String }, // for Google SSO later
+  isVerified: { type: Boolean, default: false },
+  verificationCode: { type: String },
+  verificationCodeExpires: { type: Date },
 }, { timestamps: true });
 
 // Hash password before saving

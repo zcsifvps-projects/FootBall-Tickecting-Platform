@@ -12,6 +12,8 @@ export default function VerifyEmail() {
   const [resendTimer, setResendTimer] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+
   // Resend timer
   useEffect(() => {
     if (resendTimer > 0) {
@@ -63,21 +65,51 @@ export default function VerifyEmail() {
   };
 
   const handleVerify = (code: string) => {
-    // TODO: Implement actual OTP verification with Lovable Cloud
-    toast({
-      title: "Email Verified!",
-      description: "Your email has been verified successfully.",
-    });
-    navigate("/profile/wizard");
+    const email = localStorage.getItem("pendingEmail");
+    if (!email) {
+      toast({ variant: "destructive", title: "Missing email", description: "No pending email found." });
+      return;
+    }
+
+    fetch(`${API_BASE_URL}/api/auth/verify-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Verification failed");
+        toast({ title: "Email Verified!", description: "Your email has been verified successfully." });
+        // clear pending
+        localStorage.removeItem("pendingEmail");
+        navigate("/profile/wizard");
+      })
+      .catch((err) => {
+        toast({ variant: "destructive", title: "Error", description: err.message || "Verification failed" });
+      });
   };
 
   const handleResend = () => {
-    // TODO: Implement resend OTP
-    toast({
-      title: "Code Resent",
-      description: "A new verification code has been sent to your email.",
-    });
-    setResendTimer(60);
+    const email = localStorage.getItem("pendingEmail");
+    if (!email) {
+      toast({ variant: "destructive", title: "Missing email", description: "No pending email found." });
+      return;
+    }
+
+    fetch(`${API_BASE_URL}/api/auth/resend-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Resend failed");
+        toast({ title: "Code Resent", description: "A new verification code has been sent to your email." });
+        setResendTimer(60);
+      })
+      .catch((err) => {
+        toast({ variant: "destructive", title: "Error", description: err.message || "Resend failed" });
+      });
   };
 
   return (

@@ -34,16 +34,16 @@ type TicketCardProps = {
 
 export default function MyTickets() {
   const [activeTab, setActiveTab] = useState("upcoming");
-  const [upcomingTickets, setUpcomingTickets] = useState<any[]>([]);
+  const [upcomingTickets, setUpcomingTickets] = useState<Ticket[]>([]);
 
   // Load tickets from storage on mount
   useEffect(() => {
     const loadTickets = () => {
       // 1. Get real tickets from localStorage (from PaymentSuccess)
-      const savedTickets = JSON.parse(localStorage.getItem("my-tickets") || "[]");
+      const savedTickets = JSON.parse(localStorage.getItem("my-tickets") || "[]") as Ticket[];
       
       // 2. Your default/mock tickets for UI testing
-      const defaultTickets = [
+      const defaultTickets: Ticket[] = [
         {
           id: "TKT-002",
           match: "ZESCO United vs Zanaco",
@@ -53,9 +53,12 @@ export default function MyTickets() {
           stadium: "Levy Mwanawasa Stadium",
           city: "Ndola",
           zone: "VIP Stand",
+          section: "VIP Stand",
           row: "5",
           seats: ["8"],
+          quantity: 1,
           total: 180.0,
+          orderDate: "Sun, 14 Feb 2026",
         },
       ];
 
@@ -78,12 +81,15 @@ export default function MyTickets() {
       zone: "West Wing",
       row: "5",
       seats: ["10"],
+      section: "West Wing",
+      quantity: 1,
       total: 95.0,
+      orderDate: "Sat, 5 Oct 2025",
       attended: true,
     },
   ];
 
-              </Badge>
+  
   // TicketCard component with proper types
   const TicketCard = ({ ticket, isPast = false }: TicketCardProps) => (
     <Card className="group hover:shadow-md transition-all duration-300">
@@ -154,7 +160,7 @@ export default function MyTickets() {
             </div>
           </div>
         </div>
-      </div>
+      </CardContent>
 
       {/* RIGHT SIDE: ACTIONS/QR */}
       <div className={`flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-slate-200 rounded-b-[2rem] md:rounded-r-[2rem] md:rounded-bl-none border-t-2 md:border-l-2 border-dashed border-l-transparent shadow-sm`}>
@@ -188,7 +194,7 @@ export default function MyTickets() {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 
   return (
