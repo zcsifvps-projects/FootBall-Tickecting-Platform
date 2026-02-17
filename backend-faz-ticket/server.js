@@ -8,6 +8,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import authRouter from "./routes/auth.js";
+import matchesRouter from "./routes/matches.js";
 
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "SET" : "NOT SET");
@@ -90,7 +91,8 @@ app.use(["/api/frontend", "/api/public"], publicLimiter);
 // ----------------------
 // Routes
 // ----------------------
-app.use("/api/auth", authRouter);
+app.use("/api/auth", authRouter); // ✅ Auth routes
+app.use("/api/matches", matchesRouter); // ✅ Matches routes (public + admin)
 
 app.get("/health", (_req, res) => res.send("ok"));
 
