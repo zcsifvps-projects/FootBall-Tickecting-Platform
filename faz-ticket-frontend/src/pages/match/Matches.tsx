@@ -1,27 +1,18 @@
 // src/pages/match/Matches.tsx
-import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, Search, Grid2X2, List } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-
-const SAMPLE_FIXTURES = [
-  {
-    id: "5",
-    homeTeam: "Zambia",
-    awayTeam: "Malawi",
-    competition: "World Cup Qualifiers",
-    date: "Sat, 25 Jan 2025",
-    time: "15:00",
-    stadium: "National Heroes Stadium",
-    city: "Lusaka",
-    priceFrom: 150,
-    status: "sold-out",
-  }
-];
+import { api } from "@/lib/api";
 
 export default function Matches() {
+  const { data: matches = [], isLoading: loading, error } = useQuery({
+    queryKey: ["matches"],
+    queryFn: () => api.matches.getAll(),
+  });
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
@@ -31,9 +22,12 @@ export default function Matches() {
           Match <span className="text-[#0e633d]">Center</span>
         </h1>
 
+        {loading && <p className="text-center text-slate-500">Loading matches...</p>}
+        {error && <p className="text-center text-red-500">Error: {error}</p>}
+
         <div className="space-y-6">
-          {SAMPLE_FIXTURES.map((match) => (
-            <div key={match.id} className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
+          {matches.map((match) => (
+            <div key={match._id} className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
               <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                 
                 {/* MATCHUP: FLAGS ABOVE NAMES */}
@@ -74,7 +68,7 @@ export default function Matches() {
                     <Calendar className="h-4 w-4" /> {match.date}
                   </div>
                   <div className="flex items-center gap-2 text-slate-400 text-sm">
-                    <MapPin className="h-4 w-4" /> {match.stadium}
+                    <MapPin className="h-4 w-4" /> {match.stadium || match.city}
                   </div>
                 </div>
 
@@ -91,7 +85,7 @@ export default function Matches() {
                       match.status === "sold-out" ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-[#0e633d] text-white"
                     }`}
                   >
-                    {match.status === "sold-out" ? <span>Sold Out</span> : <Link to={`/match/${match.id}`}>Buy Now</Link>}
+                    {match.status === "sold-out" ? <span>Sold Out</span> : <Link to={`/match/${match._id}`}>Buy Now</Link>}
                   </Button>
                 </div>
 

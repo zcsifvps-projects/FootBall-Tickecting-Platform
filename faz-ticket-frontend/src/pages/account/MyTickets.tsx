@@ -83,7 +83,6 @@ export default function MyTickets() {
     },
   ];
 
-              </Badge>
   // TicketCard component with proper types
   const TicketCard = ({ ticket, isPast = false }: TicketCardProps) => (
     <Card className="group hover:shadow-md transition-all duration-300">
@@ -154,7 +153,7 @@ export default function MyTickets() {
             </div>
           </div>
         </div>
-      </div>
+      </CardContent>
 
       {/* RIGHT SIDE: ACTIONS/QR */}
       <div className={`flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-slate-200 rounded-b-[2rem] md:rounded-r-[2rem] md:rounded-bl-none border-t-2 md:border-l-2 border-dashed border-l-transparent shadow-sm`}>
@@ -188,7 +187,7 @@ export default function MyTickets() {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 
   return (

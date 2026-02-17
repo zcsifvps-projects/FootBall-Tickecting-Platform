@@ -1,10 +1,12 @@
 // src/pages/Landing.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Shield, CreditCard, Ticket, ChevronRight, Lock, QrCode, RefreshCw } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import heroImage from "@/assets/hero-stadium.jpg";
 
 import UpcomingMatches from "@/pages/LandingComponents/upcomingmatches";
@@ -14,6 +16,13 @@ export default function Landing() {
   const [/* searchQuery */, setSearchQuery] = useState("");
   const [showSecurity, setShowSecurity] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch featured match (first match from API)
+  const { data: matches = [] } = useQuery({
+    queryKey: ["matches"],
+    queryFn: () => api.matches.getAll(),
+  });
+  const featuredMatch = matches?.[0];
 
    const scrollToMatches = () => {
     const section = document.getElementById("matches");
@@ -90,30 +99,35 @@ export default function Landing() {
                       Featured Match
                     </div>
                     <div className="p-8">
-                      <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase italic">
-                        Zambia <span className="text-[#0e633d]">vs</span> Ghana
-                      </h3>
-                      <p className="mt-1 text-sm font-bold text-slate-400 uppercase tracking-wide">National Heroes Stadium</p>
+                      {featuredMatch ? (
+                        <>
+                          <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase italic">
+                            {featuredMatch.homeTeam} <span className="text-[#0e633d]">vs</span> {featuredMatch.awayTeam}
+                          </h3>
+                          <p className="mt-1 text-sm font-bold text-slate-400 uppercase tracking-wide">{featuredMatch.stadium || featuredMatch.city}</p>
 
-                      <div className="mt-6 grid grid-cols-3 gap-4 border-y border-slate-100 py-4">
-                        <div>
-                          <div className="text-[10px] font-black uppercase text-slate-400">Date</div>
-                          <div className="font-bold text-slate-900 text-sm">Dec 15, 2024</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-black uppercase text-slate-400">Kick-off</div>
-                          <div className="font-bold text-slate-900 text-sm">16:00 CAT</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] font-black uppercase text-slate-400">From</div>
-                          <div className="font-black text-[#0e633d] text-lg">K120</div>
-                        </div>
-                      </div>
+                          <div className="mt-6 grid grid-cols-3 gap-4 border-y border-slate-100 py-4">
+                            <div>
+                              <div className="text-[10px] font-black uppercase text-slate-400">Date</div>
+                              <div className="font-bold text-slate-900 text-sm">{featuredMatch.date}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-black uppercase text-slate-400">Kick-off</div>
+                              <div className="font-bold text-slate-900 text-sm">{featuredMatch.time} CAT</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] font-black uppercase text-slate-400">From</div>
+                              <div className="font-black text-[#0e633d] text-lg">K{featuredMatch.priceFrom}</div>
+                            </div>
+                          </div>
 
-                     <div className="mt-6 w-full h-12 flex items-center justify-center text-base font-black uppercase italic bg-orange-600 text-white rounded-xl shadow-md select-none">
-                        Choose Seats
-                    </div>
-
+                          <div className="mt-6 w-full h-12 flex items-center justify-center text-base font-black uppercase italic bg-orange-600 text-white rounded-xl shadow-md select-none">
+                            Choose Seats
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-slate-400">No matches available</div>
+                      )}
                     </div>
                   </div>
                 </div>

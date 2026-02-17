@@ -5,30 +5,42 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface MatchCardProps {
-  id: string;
-  homeTeam: string;
-  awayTeam: string;
-  competition: string;
-  date: string;
-  time: string;
-  stadium: string;
-  city: string;
-  priceFrom: number;
-  status?: "available" | "limited" | "sold-out";
+  match: {
+    _id?: string;
+    id?: string;
+    homeTeam?: string;
+    awayTeam?: string;
+    competition?: string;
+    date?: string;
+    time?: string;
+    stadium?: string;
+    city?: string;
+    priceFrom?: number;
+    status?: "available" | "limited" | "sold-out";
+    ticketsSold?: number;
+    totalTickets?: number;
+  };
 }
 
-export const MatchCard = ({
-  id,
-  homeTeam,
-  awayTeam,
-  competition,
-  date,
-  time,
-  stadium,
-  city,
-  priceFrom,
-  status = "available",
-}: MatchCardProps) => {
+export const MatchCard = ({ match }: MatchCardProps) => {
+  const {
+    _id,
+    id,
+    homeTeam = "TBD",
+    awayTeam = "TBD",
+    competition = "Unknown",
+    date = "TBA",
+    time = "TBA",
+    stadium = "TBA",
+    city = "TBA",
+    priceFrom = 0,
+    ticketsSold = 0,
+    totalTickets = 1,
+  } = match || {};
+
+  const matchId = _id || id || "";
+  const isSoldOut = ticketsSold >= totalTickets;
+  const status = isSoldOut ? "sold-out" : "available";
   const statusConfig = {
     available: { badge: null, disabled: false },
     limited: { badge: <Badge variant="warning" className="bg-warning text-warning-foreground">Limited</Badge>, disabled: false },
@@ -112,7 +124,7 @@ export const MatchCard = ({
             {config.disabled ? (
               <span>Sold Out</span>
             ) : (
-              <Link to={`/match/${id}`}>View & Select Seats</Link>
+              <Link to={`/match/${matchId}`}>View & Select Seats</Link>
             )}
           </Button>
         </div>

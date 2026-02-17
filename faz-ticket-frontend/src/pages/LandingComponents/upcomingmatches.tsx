@@ -1,9 +1,11 @@
 // src/pages/LandingComponents/upcomingmatches.tsx
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/lib/api";
 
 type Fixture = {
   id: string;
@@ -20,67 +22,27 @@ type Fixture = {
 };
 
 export default function UpcomingMatches() {
-  // Sample fixture data (kept inside the component)
-  const fixtures: Fixture[] = [
-    {
-      id: "1",
-      homeTeam: "Zambia",
-      awayTeam: "Malawi",
-      competition: "World Cup Qualifier",
-      date: "Sat, 25 Jan 2025",
-      time: "15:00",
-      stadium: "National Heroes Stadium",
-      city: "Lusaka",
-      priceFrom: 80,
-      category: "National Team",
-    },
-    {
-      id: "2",
-      homeTeam: "ZESCO United",
-      awayTeam: "Zanaco",
-      competition: "Super League",
-      date: "Sun, 26 Jan 2025",
-      time: "15:00",
-      stadium: "Levy Mwanawasa Stadium",
-      city: "Ndola",
-      priceFrom: 60,
-      status: "limited",
-      category: "Super League",
-    },
-    {
-      id: "3",
-      homeTeam: "Nkana FC",
-      awayTeam: "Power Dynamos",
-      competition: "Super League",
-      date: "Wed, 29 Jan 2025",
-      time: "18:00",
-      stadium: "Nkana Stadium",
-      city: "Kitwe",
-      priceFrom: 55,
-      category: "Super League",
-    },
-    {
-      id: "4",
-      homeTeam: "Zambia",
-      awayTeam: "Tanzania",
-      competition: "Friendly",
-      date: "Sat, 1 Feb 2025",
-      time: "15:00",
-      stadium: "Nkoloma Stadium",
-      city: "Lusaka",
-      priceFrom: 70,
-      category: "National Team",
-    },
-  ];
+  // Fetch matches from backend
+  const { data: matches = [], isLoading } = useQuery({
+    queryKey: ["matches"],
+    queryFn: () => api.matches.getAll(),
+  });
 
   const [activeCategory, setActiveCategory] = useState<
-    "all" | "National Team" | "Super League" | "Cup" | "Friendly"
+    "all" | "National" | "League" | "Cup" | "Friendly"
   >("all");
 
-  const filteredFixtures =
-    activeCategory === "all"
-      ? fixtures
-      : fixtures.filter((f) => f.category === activeCategory);
+  // Filter by competition type from backend
+  const filteredFixtures = activeCategory === "all"
+    ? matches
+    : matches.filter((m: any) => {
+        const competition = m.competition?.toLowerCase() || "";
+        if (activeCategory === "National") return competition.includes("national") || competition.includes("qualifier");
+        if (activeCategory === "League") return competition.includes("league") || competition.includes("super");
+        if (activeCategory === "Cup") return competition.includes("cup");
+        if (activeCategory === "Friendly") return competition.includes("friendly");
+        return true;
+      });
 
   return (
     <section className="py-16">
@@ -103,10 +65,10 @@ export default function UpcomingMatches() {
             <TabsTrigger value="all" onClick={() => setActiveCategory("all")}>
               All
             </TabsTrigger>
-            <TabsTrigger value="national" onClick={() => setActiveCategory("National Team")}>
+            <TabsTrigger value="national" onClick={() => setActiveCategory("National")}>
               National
             </TabsTrigger>
-            <TabsTrigger value="league" onClick={() => setActiveCategory("Super League")}>
+            <TabsTrigger value="league" onClick={() => setActiveCategory("League")}>
               League
             </TabsTrigger>
             <TabsTrigger value="cup" onClick={() => setActiveCategory("Cup")}>
@@ -118,11 +80,17 @@ export default function UpcomingMatches() {
           </TabsList>
         </Tabs>
 
+        {isLoading && <p className="text-center text-slate-500">Loading matches...</p>}
+
         {/* Matches Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFixtures.map((fixture) => (
-            <MatchCard key={fixture.id} {...fixture} />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {filteredFixtures.length > 0 ? (
+            filteredFixtures.map((match: any) => (
+              <MatchCard key={match._id} match={match} />
+            ))
+          ) : (
+            <p className="text-center text-slate-500 col-span-full">{isLoading ? "Loading..." : "No matches available in this category"}</p>
+          )}
         </div>
       </div>
     </section>

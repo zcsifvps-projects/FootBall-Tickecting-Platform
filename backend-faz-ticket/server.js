@@ -7,6 +7,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import authRouter from "./routes/auth.js"; // make sure this exists
+import matchesRouter from "./routes/matches.js";
 
 // ----------------------
 // Load environment variables
@@ -100,6 +101,7 @@ app.use((req, _res, next) => {
 // Routes
 // ----------------------
 app.use("/api/auth", authRouter); // ✅ Auth routes
+app.use(matchesRouter); // ✅ Matches routes (public + admin)
 
 // Health check
 app.get("/health", (_req, res) => res.send("ok"));
