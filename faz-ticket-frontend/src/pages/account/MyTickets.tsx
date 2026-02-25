@@ -39,49 +39,15 @@ export default function MyTickets() {
   // Load tickets from storage on mount
   useEffect(() => {
     const loadTickets = () => {
-      // 1. Get real tickets from localStorage (from PaymentSuccess)
+      // Get real tickets from localStorage (from PaymentSuccess flow)
       const savedTickets = JSON.parse(localStorage.getItem("my-tickets") || "[]");
-      
-      // 2. Your default/mock tickets for UI testing
-      const defaultTickets = [
-        {
-          id: "TKT-002",
-          match: "ZESCO United vs Zanaco",
-          competition: "Super League",
-          date: "Sun, 20 Feb 2026",
-          time: "14:00",
-          stadium: "Levy Mwanawasa Stadium",
-          city: "Ndola",
-          zone: "VIP Stand",
-          row: "5",
-          seats: ["8"],
-          total: 180.0,
-        },
-      ];
-
-      // Combine real tickets (newest first) with default ones
-      setUpcomingTickets([...savedTickets, ...defaultTickets]);
+      setUpcomingTickets(savedTickets);
     };
 
     loadTickets();
   }, []);
 
-  const pastTickets: Ticket[] = [
-    {
-      id: "TKT-000",
-      match: "Zambia vs Kenya",
-      competition: "Friendly",
-      date: "Sat, 5 Oct 2025",
-      time: "18:00",
-      stadium: "National Heroes Stadium",
-      city: "Lusaka",
-      zone: "West Wing",
-      row: "5",
-      seats: ["10"],
-      total: 95.0,
-      attended: true,
-    },
-  ];
+  const pastTickets: Ticket[] = [];
 
   // TicketCard component with proper types
   const TicketCard = ({ ticket, isPast = false }: TicketCardProps) => (

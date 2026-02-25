@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,14 @@ import { toast } from "@/hooks/use-toast";
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resendTimer, setResendTimer] = useState(60);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+
+  const email = searchParams.get("email") || sessionStorage.getItem("register_email") || "";
 
   // Resend timer
   useEffect(() => {
@@ -62,22 +67,98 @@ export default function VerifyEmail() {
     }
   };
 
-  const handleVerify = (code: string) => {
-    // TODO: Implement actual OTP verification with Lovable Cloud
-    toast({
-      title: "Email Verified!",
-      description: "Your email has been verified successfully.",
-    });
-    navigate("/profile/wizard");
+  const handleVerify = async (code: string) => {
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Email not found. Please register again.",
+      });
+      navigate("/auth/register");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token: code }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: data.error || "Invalid or expired code",
+        });
+        return;
+      }
+
+      toast({
+        title: "Email Verified!",
+        description: "Your email has been verified. Redirecting to matches...",
+      });
+
+      // Clear stored email
+      sessionStorage.removeItem("register_email");
+
+      // Redirect to matches page instead of sign-in so user can browse/purchase
+      setTimeout(() => navigate("/matches"), 1500);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Verification failed. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleResend = () => {
-    // TODO: Implement resend OTP
-    toast({
-      title: "Code Resent",
-      description: "A new verification code has been sent to your email.",
-    });
-    setResendTimer(60);
+  const handleResend = async () => {
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Email not found.",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/resend-verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to resend code",
+        });
+        return;
+      }
+
+      toast({
+        title: "Code Resent",
+        description: "A new verification code has been sent to your email.",
+      });
+      setResendTimer(60);
+      setOtp(["", "", "", "", "", ""]);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to resend code. Please try again.",
+      });
+    }
   };
 
   return (
@@ -133,9 +214,9 @@ export default function VerifyEmail() {
                 className="w-full"
                 size="lg"
                 onClick={() => handleVerify(otp.join(""))}
-                disabled={otp.some((digit) => !digit)}
+                disabled={otp.some((digit) => !digit) || isLoading}
               >
-                Verify Email
+                {isLoading ? "Verifying..." : "Verify Email"}
               </Button>
 
               {/* Resend Code */}

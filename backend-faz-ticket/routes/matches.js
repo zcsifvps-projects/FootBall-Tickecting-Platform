@@ -1,5 +1,6 @@
 import express from "express";
 import Match from "../models/Match.js";
+import { authenticate, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.get("/api/matches/:id", async (req, res) => {
 // ========================
 
 // Create a new match (admin only)
-router.post("/api/admin/matches", async (req, res) => {
+router.post("/api/admin/matches", authenticate, requireAdmin, async (req, res) => {
   try {
     // TODO: Add authentication middleware to verify admin
     const {
@@ -98,9 +99,8 @@ router.post("/api/admin/matches", async (req, res) => {
 });
 
 // Update a match (admin only)
-router.put("/api/admin/matches/:id", async (req, res) => {
+router.put("/api/admin/matches/:id", authenticate, requireAdmin, async (req, res) => {
   try {
-    // TODO: Add authentication middleware to verify admin
     const match = await Match.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -117,9 +117,8 @@ router.put("/api/admin/matches/:id", async (req, res) => {
 });
 
 // Delete a match (admin only)
-router.delete("/api/admin/matches/:id", async (req, res) => {
+router.delete("/api/admin/matches/:id", authenticate, requireAdmin, async (req, res) => {
   try {
-    // TODO: Add authentication middleware to verify admin
     const match = await Match.findByIdAndDelete(req.params.id);
 
     if (!match) {
@@ -132,10 +131,9 @@ router.delete("/api/admin/matches/:id", async (req, res) => {
   }
 });
 
-// Get all matches for admin panel
-router.get("/api/admin/matches", async (req, res) => {
+// Get all matches for admin panel (admin only)
+router.get("/api/admin/matches", authenticate, requireAdmin, async (req, res) => {
   try {
-    // TODO: Add authentication middleware to verify admin
     const matches = await Match.find().sort({ date: 1 });
     res.json(matches);
   } catch (error) {

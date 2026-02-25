@@ -48,7 +48,7 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -57,6 +57,7 @@ export default function Register() {
           email: formData.email,
           mobile: formData.mobile,
           password: formData.password,
+          confirmPassword: formData.confirmPassword,
         }),
       });
 
@@ -71,15 +72,16 @@ export default function Register() {
         return;
       }
 
-      // Optionally store JWT
-      localStorage.setItem("token", data.token);
-
       toast({
         title: "Registration Successful!",
         description: "Please check your email to verify your account.",
       });
 
-      navigate("/auth/verify-email");
+      // Store email in session for verify page
+      sessionStorage.setItem("register_email", formData.email);
+
+      // Navigate to verify email with email param
+      navigate(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       toast({
         variant: "destructive",

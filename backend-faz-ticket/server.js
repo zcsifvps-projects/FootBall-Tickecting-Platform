@@ -1,6 +1,6 @@
 // server.js
+import 'dotenv/config';
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -8,11 +8,12 @@ import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import authRouter from "./routes/auth.js"; // make sure this exists
 import matchesRouter from "./routes/matches.js";
+import ticketsRouter from "./routes/tickets.js";
+import { authenticate, requireAdmin, requireVerified } from "./middleware/auth.js";
 
 // ----------------------
-// Load environment variables
+// Environment variables are loaded via `dotenv/config` import above
 // ----------------------
-dotenv.config();
 
 // ----------------------
 // Create Express app
@@ -22,8 +23,9 @@ const app = express();
 // ----------------------
 // MongoDB Connection
 // ----------------------
-const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) throw new Error("MONGO_URI missing in .env");
+// Accept either legacy `MONGO_URI` or the scripts-friendly `MONGODB_URI`.
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+if (!MONGO_URI) throw new Error("MONGO_URI or MONGODB_URI missing in .env");
 
 mongoose
   .connect(MONGO_URI)
@@ -100,8 +102,9 @@ app.use((req, _res, next) => {
 // ----------------------
 // Routes
 // ----------------------
-app.use("/api/auth", authRouter); // ✅ Auth routes
-app.use(matchesRouter); // ✅ Matches routes (public + admin)
+app.use("/api/auth", authRouter); // ✅ Auth routes (public)
+app.use(matchesRouter); // ✅ Matches routes (public list + admin create/update/delete)
+app.use(ticketsRouter); // ✅ Ticket routes (GET stats, update, delete)
 
 // Health check
 app.get("/health", (_req, res) => res.send("ok"));

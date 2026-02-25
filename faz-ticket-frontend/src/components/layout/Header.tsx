@@ -4,6 +4,7 @@ import { Search, Menu, X, ShoppingCart, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +19,7 @@ export const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
   const { itemCount } = useCart();
-  
-  // Mock auth state - will be replaced with real auth
-  const isAuthenticated = false;
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -94,7 +93,12 @@ export const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-sm">
+                    {user?.firstName} {user?.lastName}
+                  </DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                    {user?.email}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/account")}>
                     Dashboard
@@ -102,14 +106,22 @@ export const Header = () => {
                   <DropdownMenuItem onClick={() => navigate("/account/tickets")}>
                     My Tickets
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/account/orders")}>
-                    Orders
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/account/profile")}>
                     Profile
                   </DropdownMenuItem>
+                  {user?.isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate("/admin/matches")}>
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem
+                    className="text-destructive cursor-pointer"
+                    onClick={() => logout()}
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>

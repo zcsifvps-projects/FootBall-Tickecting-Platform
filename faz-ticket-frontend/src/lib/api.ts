@@ -37,6 +37,56 @@ export const api = {
     },
   },
 
+  // Ticket endpoints
+  tickets: {
+    create: async (ticketData: any) => {
+      const res = await fetch(`${API_URL}/api/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ticketData),
+      });
+      if (!res.ok) throw new Error('Failed to create ticket');
+      return res.json();
+    },
+
+    getById: async (id: string) => {
+      const res = await fetch(`${API_URL}/api/tickets/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Failed to fetch ticket');
+      return res.json();
+    },
+
+    getByMatch: async (matchId: string) => {
+      const res = await fetch(`${API_URL}/api/tickets/${matchId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Failed to fetch tickets for match');
+      return res.json();
+    },
+
+    updateStatus: async (id: string, status: string, paymentId?: string, paymentMethod?: string) => {
+      const res = await fetch(`${API_URL}/api/tickets/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, paymentId, paymentMethod }),
+      });
+      if (!res.ok) throw new Error('Failed to update ticket');
+      return res.json();
+    },
+
+    cancel: async (id: string) => {
+      const res = await fetch(`${API_URL}/api/tickets/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Failed to cancel ticket');
+      return res.json();
+    },
+  },
+
   // Auth endpoints (if needed later)
   auth: {
     register: async (email: string, password: string, name: string) => {

@@ -10,23 +10,76 @@ import { toast } from "@/hooks/use-toast";
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // TODO: Implement actual sign-in with Lovable Cloud
-    toast({
-      title: "Welcome Back!",
-      description: "Successfully signed in to your account.",
-    });
-    
-    // Check if user needs to complete profile
-    // For now, redirect to home
-    navigate("/");
+    if (!formData.email || !formData.password) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter email and password",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: data.error || "Invalid email or password",
+        });
+
+        // If email not verified, offer to resend verification
+        if (data.error?.includes("verify")) {
+          setTimeout(() => {
+            navigate(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+          }, 2000);
+        }
+        return;
+      }
+
+      // Store token
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      toast({
+        title: "Welcome Back!",
+        description: "Successfully signed in to your account.",
+      });
+      
+      // Redirect to home or checkout
+      const redirectTo = sessionStorage.getItem("redirectTo") || "/";
+      sessionStorage.removeItem("redirectTo");
+      navigate(redirectTo);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Sign in failed. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -93,8 +146,8 @@ export default function SignIn() {
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" variant="hero" className="w-full" size="lg">
-                Sign In
+              <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
 

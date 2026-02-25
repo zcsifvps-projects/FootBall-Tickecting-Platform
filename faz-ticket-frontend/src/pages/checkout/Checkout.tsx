@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Lock,
@@ -21,18 +21,69 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
 
 import { useCart } from "@/contexts/CartContext";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart } = useCart();
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  /* Auth Guard */
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    const token = localStorage.getItem("accessToken");
+    
+    if (!user || !token) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to purchase tickets.",
+      });
+      // Store redirect location so we can come back here after login
+      sessionStorage.setItem("redirectTo", "/checkout");
+      navigate("/auth/signin");
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(user);
+      if (!userData.isVerified) {
+        toast({
+          title: "Verification Required",
+          description: "Please verify your email before purchasing tickets.",
+        });
+        navigate(`/auth/verify-email?email=${encodeURIComponent(userData.email)}`);
+        return;
+      }
+      setIsAuthed(true);
+    } catch (err) {
+      navigate("/auth/signin");
+    } finally {
+      setIsChecking(false);
+    }
+  }, [navigate]);
 
   /* Form State */
   const [momoProvider, setMomoProvider] = useState<"mtn" | "airtel" | "zamtel">("mtn");
   const [phoneNumber, setPhoneNumber] = useState(""); 
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); 
+
+  /* Guard: Checking auth */
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  /* Guard: Not authenticated */
+  if (!isAuthed) {
+    return null;
+  }
 
   /* Guard: No cart data */
   if (cart.length === 0) {
