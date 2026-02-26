@@ -34,13 +34,13 @@ type TicketCardProps = {
 
 export default function MyTickets() {
   const [activeTab, setActiveTab] = useState("upcoming");
-  const [upcomingTickets, setUpcomingTickets] = useState<any[]>([]);
+  const [upcomingTickets, setUpcomingTickets] = useState<Ticket[]>([]);
 
   // Load tickets from storage on mount
   useEffect(() => {
     const loadTickets = () => {
       // Get real tickets from localStorage (from PaymentSuccess flow)
-      const savedTickets = JSON.parse(localStorage.getItem("my-tickets") || "[]");
+      const savedTickets = JSON.parse(localStorage.getItem("my-tickets") || "[]") as Ticket[];
       setUpcomingTickets(savedTickets);
     };
 
@@ -99,7 +99,9 @@ export default function MyTickets() {
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase text-slate-400">Venue</p>
-                <p className="font-bold text-slate-800 text-sm">{ticket.stadium}, {ticket.city}</p>
+                <p className="font-bold text-slate-800 text-sm">
+                  {ticket.stadium}, {ticket.city}
+                </p>
               </div>
             </div>
           </div>
@@ -115,27 +117,32 @@ export default function MyTickets() {
             </div>
             <div>
               <p className="text-[9px] font-black text-slate-400 uppercase">Seats</p>
-              <p className="text-xs font-bold">{Array.isArray(ticket.seats) ? ticket.seats.join(", ") : ticket.seats}</p>
+              <p className="text-xs font-bold">
+                {Array.isArray(ticket.seats) ? ticket.seats.join(", ") : String(ticket.seats)}
+              </p>
             </div>
           </div>
         </div>
       </CardContent>
 
       {/* RIGHT SIDE: ACTIONS/QR */}
-      <div className={`flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-slate-200 rounded-b-[2rem] md:rounded-r-[2rem] md:rounded-bl-none border-t-2 md:border-l-2 border-dashed border-l-transparent shadow-sm`}>
+      <div
+        className={`flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-slate-200 rounded-b-[2rem] md:rounded-r-[2rem] md:rounded-bl-none border-t-2 md:border-l-2 border-dashed border-l-transparent shadow-sm`}
+      >
         {!isPast ? (
           <div className="w-full space-y-4 text-center">
             <div className="bg-white p-4 rounded-2xl shadow-inner border border-slate-100 inline-block mb-2">
               <QrCode className="h-20 w-20 text-slate-900" />
             </div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-              ID: {ticket.id}
-            </p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">ID: {ticket.id}</p>
             <div className="flex flex-col gap-2 w-full">
               <Button className="w-full bg-[#0e633d] hover:bg-black text-white font-black uppercase italic text-xs h-11 transition-colors">
                 View QR Code
               </Button>
-              <Button variant="outline" className="w-full border-2 border-slate-200 font-black uppercase italic text-xs h-11">
+              <Button
+                variant="outline"
+                className="w-full border-2 border-slate-200 font-black uppercase italic text-xs h-11"
+              >
                 <Download className="mr-2 h-4 w-4 text-orange-500" />
                 PDF
               </Button>
@@ -143,13 +150,13 @@ export default function MyTickets() {
           </div>
         ) : (
           <div className="text-center">
-             <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-4">
-                <TicketIcon className="h-8 w-8 text-slate-400" />
-             </div>
-             <p className="text-xs font-black uppercase text-slate-400 italic">Past Event</p>
-             <Button variant="link" className="text-[#0e633d] font-black uppercase italic text-[10px] mt-2">
-                Download Receipt
-             </Button>
+            <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center mx-auto mb-4">
+              <TicketIcon className="h-8 w-8 text-slate-400" />
+            </div>
+            <p className="text-xs font-black uppercase text-slate-400 italic">Past Event</p>
+            <Button variant="link" className="text-[#0e633d] font-black uppercase italic text-[10px] mt-2">
+              Download Receipt
+            </Button>
           </div>
         )}
       </div>
@@ -175,10 +182,16 @@ export default function MyTickets() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-white border border-slate-200 p-1 h-14 rounded-2xl mb-8 w-full md:w-auto">
-              <TabsTrigger value="upcoming" className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full transition-all">
+              <TabsTrigger
+                value="upcoming"
+                className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full transition-all"
+              >
                 Upcoming ({upcomingTickets.length})
               </TabsTrigger>
-              <TabsTrigger value="past" className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full transition-all">
+              <TabsTrigger
+                value="past"
+                className="rounded-xl px-8 font-black uppercase italic text-xs data-[state=active]:bg-[#0e633d] data-[state=active]:text-white h-full transition-all"
+              >
                 Past History ({pastTickets.length})
               </TabsTrigger>
             </TabsList>
@@ -214,7 +227,7 @@ export default function MyTickets() {
                   "Each QR code is valid for single entry only",
                   "Gates open 2 hours before kick-off",
                   "Keep your digital PDF backup ready",
-                  "ID may be required at the turnstiles"
+                  "ID may be required at the turnstiles",
                 ].map((text, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm font-bold text-white/80">
                     <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
@@ -238,7 +251,9 @@ function EmptyState() {
         <QrCode className="h-10 w-10 text-slate-300" />
       </div>
       <h3 className="text-2xl font-black uppercase italic text-slate-900 mb-2">No Active Tickets</h3>
-      <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-8">Ready for the next match day?</p>
+      <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-8">
+        Ready for the next match day?
+      </p>
       <Button className="bg-orange-500 hover:bg-[#0e633d] text-white font-black uppercase italic rounded-xl px-10 h-14 transition-all">
         Find a Match
       </Button>

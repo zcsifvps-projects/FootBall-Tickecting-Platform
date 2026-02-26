@@ -13,9 +13,14 @@ export default function VerifyEmail() {
   const [resendTimer, setResendTimer] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
-  const email = searchParams.get("email") || sessionStorage.getItem("register_email") || "";
+  const email =
+    searchParams.get("email") ||
+    sessionStorage.getItem("register_email") ||
+    localStorage.getItem("pendingEmail") ||
+    "";
 
   // Resend timer
   useEffect(() => {
@@ -26,20 +31,14 @@ export default function VerifyEmail() {
   }, [resendTimer]);
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value[0];
-    }
+    if (value.length > 1) value = value[0];
 
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+    if (value && index < 5) inputRefs.current[index + 1]?.focus();
 
-    // Auto-submit when all fields are filled
     if (index === 5 && value && newOtp.every((digit) => digit)) {
       handleVerify(newOtp.join(""));
     }
@@ -55,11 +54,11 @@ export default function VerifyEmail() {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text").slice(0, 6).split("");
     const newOtp = [...otp];
+
     pastedData.forEach((char, index) => {
-      if (index < 6 && /^\d$/.test(char)) {
-        newOtp[index] = char;
-      }
+      if (index < 6 && /^\d$/.test(char)) newOtp[index] = char;
     });
+
     setOtp(newOtp);
 
     if (newOtp.every((digit) => digit)) {
@@ -83,7 +82,7 @@ export default function VerifyEmail() {
       const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, token: code }),
+        body: JSON.stringify({ email, code }),
       });
 
       const data = await response.json();
@@ -99,13 +98,12 @@ export default function VerifyEmail() {
 
       toast({
         title: "Email Verified!",
-        description: "Your email has been verified. Redirecting to matches...",
+        description: "Your email has been verified. Redirecting...",
       });
 
-      // Clear stored email
       sessionStorage.removeItem("register_email");
+      localStorage.removeItem("pendingEmail");
 
-      // Redirect to matches page instead of sign-in so user can browse/purchase
       setTimeout(() => navigate("/matches"), 1500);
     } catch (err) {
       toast({
@@ -119,63 +117,23 @@ export default function VerifyEmail() {
   };
 
   const handleResend = async () => {
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Email not found.",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/resend-verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.error || "Failed to resend code",
-        });
-        return;
-      }
-
-      toast({
-        title: "Code Resent",
-        description: "A new verification code has been sent to your email.",
-      });
-      setResendTimer(60);
-      setOtp(["", "", "", "", "", ""]);
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to resend code. Please try again.",
-      });
-    }
+    toast({
+      variant: "destructive",
+      title: "Not Available",
+      description: "Resend is not configured on the server yet.",
+    });
+    setResendTimer(60);
+    setOtp(["", "", "", "", "", ""]);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-secondary to-background p-4">
       <div className="w-full max-w-md">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-4"
-          onClick={() => navigate("/auth/register")}
-        >
+        <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate("/auth/register")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
 
-        {/* Verify Email Card */}
         <Card className="shadow-xl">
           <CardHeader className="space-y-1">
             <div className="flex items-center justify-center mb-4">
@@ -185,12 +143,12 @@ export default function VerifyEmail() {
             </div>
             <CardTitle className="text-2xl text-center">Verify Your Email</CardTitle>
             <CardDescription className="text-center">
-              We've sent a 6-digit code to your email address. Enter it below to verify your account.
+              Enter the 6-digit code sent to your email.
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-6">
-              {/* OTP Input */}
               <div className="flex justify-center gap-2" onPaste={handlePaste}>
                 {otp.map((digit, index) => (
                   <Input
@@ -208,30 +166,13 @@ export default function VerifyEmail() {
                 ))}
               </div>
 
-              {/* Verify Button */}
-              <Button
-                variant="hero"
-                className="w-full"
-                size="lg"
-                onClick={() => handleVerify(otp.join(""))}
-                disabled={otp.some((digit) => !digit) || isLoading}
-              >
-                {isLoading ? "Verifying..." : "Verify Email"}
+              <Button className="w-full" disabled={isLoading} onClick={() => handleVerify(otp.join(""))}>
+                Verify Email
               </Button>
 
-              {/* Resend Code */}
-              <div className="text-center text-sm">
-                {resendTimer > 0 ? (
-                  <p className="text-muted-foreground">
-                    Resend code in{" "}
-                    <span className="font-semibold text-foreground">{resendTimer}s</span>
-                  </p>
-                ) : (
-                  <Button variant="link" onClick={handleResend} className="p-0 h-auto">
-                    Resend verification code
-                  </Button>
-                )}
-              </div>
+              <Button variant="ghost" className="w-full" disabled={resendTimer > 0} onClick={handleResend}>
+                {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Resend Code"}
+              </Button>
             </div>
           </CardContent>
         </Card>

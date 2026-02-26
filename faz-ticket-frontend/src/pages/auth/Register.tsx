@@ -72,6 +72,9 @@ export default function Register() {
         return;
       }
 
+      // Save pending email for verification step (optional)
+      localStorage.setItem("pendingEmail", formData.email);
+
       toast({
         title: "Registration Successful!",
         description: "Please check your email to verify your account.",
@@ -200,51 +203,38 @@ export default function Register() {
                 />
               </div>
 
-              {/* Terms Checkbox */}
-              <div className="flex items-start space-x-2">
+              {/* Terms */}
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="terms"
                   checked={formData.termsAccepted}
                   onCheckedChange={(checked) =>
-                    setFormData({ ...formData, termsAccepted: checked as boolean })
+                    setFormData({ ...formData, termsAccepted: checked === true })
                   }
                 />
-                <label
-                  htmlFor="terms"
-                  className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  I agree to the{" "}
-                  <Link to="/legal/terms" className="text-primary hover:underline">
-                    Terms and Conditions
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="/legal/privacy" className="text-primary hover:underline">
-                    Privacy Policy
+                <Label htmlFor="terms" className="text-sm">
+                  I accept the{" "}
+                  <Link to="/terms" className="text-primary underline">
+                    terms and conditions
                   </Link>
-                </label>
+                </Label>
               </div>
 
-              {/* Submit Button */}
-              <Button type="submit" variant="hero" className="w-full" size="lg">
+              {/* Submit */}
+              <Button type="submit" className="w-full">
+                <Check className="mr-2 h-4 w-4" />
                 Create Account
               </Button>
-            </form>
 
-            {/* Sign In Link */}
-            <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Already have an account? </span>
-              <Link to="/auth/signin" className="text-primary font-semibold hover:underline">
-                Sign In
-              </Link>
-            </div>
+              <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Link to="/auth/login" className="text-primary underline">
+                  Login
+                </Link>
+              </p>
+            </form>
           </CardContent>
         </Card>
-
-        {/* Security Note */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Check className="h-4 w-4 text-success" />
-          <span>Your data is encrypted and secure</span>
-        </div>
       </div>
     </div>
   );

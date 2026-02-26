@@ -2,8 +2,8 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 import User from "../models/User.js";
-import { sendVerificationEmail } from "../config/email.js";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey";
@@ -11,33 +11,67 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refreshsecretkey";
 const JWT_EXPIRE = "15m";
 const REFRESH_EXPIRE = "7d";
 
-// ─────────────────────────────────────────────────────
-// POST /api/auth/register
-// ─────────────────────────────────────────────────────
-router.post("/register", async (req, res) => {
+// Nodemailer transport
+let transporter;
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+
+if (!EMAIL_USER || !EMAIL_PASS) {
+  console.warn("⚠️ SMTP credentials missing. Email sending disabled.");
+  transporter = {
+    verify: async () => Promise.resolve(),
+    sendMail: async () => Promise.resolve(),
+  };
+} else {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+  });
+
+  transporter.verify()
+    .then(() => console.log("✅ SMTP transporter ready"))
+    .catch(err => console.error("❌ SMTP verify failed:", err));
+}
+
+async function sendVerificationEmail(toEmail, { code, url }) {
+  const subject = "Verify your FAZ account";
+
+  const textLines = [
+    code ? `Your verification code is: ${code}` : null,
+    url ? `Or click to verify: ${url}` : null,
+  ].filter(Boolean);
+
+  const htmlParts = [
+    code ? `<p>Your verification code is: <strong>${code}</strong></p>` : "",
+    url ? `<p>Or click: <a href="${url}">${url}</a></p>` : "",
+  ].join("");
+
+  await transporter.sendMail({
+    from: EMAIL_USER,
+    to: toEmail,
+    subject,
+    text: textLines.join("\n"),
+    html: htmlParts,
+  });
+}
+
+// Shared register/signup handler
+async function handleRegister(req, res) {
   try {
     const { firstName, lastName, email, mobile, password, confirmPassword } = req.body;
 
-    // Validate inputs
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({ error: "All fields required" });
     }
-
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "Passwords do not match" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
-    }
-
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: "Email already registered" });
     }
 
-    // Create user (password hashed by pre-save hook)
     const user = new User({
       firstName,
       lastName,
@@ -47,314 +81,112 @@ router.post("/register", async (req, res) => {
       isVerified: false,
     });
 
-    // Generate verification token
+    // Generate verification code + token
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationCode = code;
+    user.verificationCodeExpires = new Date(Date.now() + 12 * 60 * 60 * 1000);
+
     const verifyToken = crypto.randomBytes(32).toString("hex");
     user.verifyToken = verifyToken;
-    user.verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    user.verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await user.save();
 
-    // Send verification email
-    try {
-      // Build backend verification URL so the link calls our API verify endpoint
-      const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-      const verificationUrl = `${backendBase}/api/auth/verify-email?email=${encodeURIComponent(
-        user.email
-      )}&token=${encodeURIComponent(verifyToken)}`;
+    const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const url = `${backendBase}/api/auth/verify-email?email=${encodeURIComponent(user.email)}&token=${verifyToken}`;
 
-      await sendVerificationEmail(user.email, verificationUrl);
-      console.log(`✅ Verification email sent to ${user.email}`);
-    } catch (emailErr) {
-      console.error("⚠️ Email send failed:", emailErr.message);
-      // Don't fail registration if email fails
+    try {
+      await sendVerificationEmail(user.email, { code, url });
+    } catch (err) {
+      console.error("Email send failed:", err);
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Registration successful. Check your email to verify your account.",
       user: {
         id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
         email: user.email,
         isVerified: user.isVerified,
       },
     });
   } catch (err) {
     console.error("Register error:", err);
-    res.status(500).json({ error: "Registration failed. Please try again." });
+    res.status(500).json({ error: "Registration failed" });
   }
-});
+}
 
-// ─────────────────────────────────────────────────────
-// POST /api/auth/verify
-// ─────────────────────────────────────────────────────
+router.post("/register", handleRegister);
+router.post("/signup", handleRegister);
+
 router.post("/verify", async (req, res) => {
   try {
-    const { email, token } = req.body;
+    const { email, token, code } = req.body;
 
-    if (!email || !token) {
-      return res.status(400).json({ error: "Email and verification token required" });
+    if (!email || (!token && !code)) {
+      return res.status(400).json({ error: "Email and verification token/code required" });
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const now = new Date();
+
+    if (token) {
+      if (user.verifyToken !== token || !user.verifyExpires || user.verifyExpires < now) {
+        return res.status(400).json({ error: "Invalid or expired verification token" });
+      }
     }
 
-    // Check token validity and expiry
-    if (user.verifyToken !== token || !user.verifyExpires || user.verifyExpires < new Date()) {
-      return res.status(400).json({ error: "Invalid or expired verification token" });
+    if (code) {
+      if (
+        user.verificationCode !== code ||
+        !user.verificationCodeExpires ||
+        user.verificationCodeExpires < now
+      ) {
+        return res.status(400).json({ error: "Invalid or expired verification code" });
+      }
     }
 
-    // Mark as verified
     user.isVerified = true;
-    user.verifyToken = null;
-    user.verifyExpires = null;
+    user.verifyToken = undefined;
+    user.verifyExpires = undefined;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+
     await user.save();
 
-    res.json({
-      message: "Email verified successfully. You can now sign in.",
-      user: {
-        id: user._id,
-        email: user.email,
-        isVerified: user.isVerified,
-      },
-    });
+    return res.json({ message: "Email verified successfully" });
   } catch (err) {
     console.error("Verify error:", err);
     res.status(500).json({ error: "Verification failed" });
   }
 });
 
-// ─────────────────────────────────────────────────────
-// POST /api/auth/resend-verify
-// ─────────────────────────────────────────────────────
-router.post("/resend-verify", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: "Email required" });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    if (user.isVerified) {
-      return res.status(400).json({ error: "Email already verified" });
-    }
-
-    // Generate new token
-    const verifyToken = crypto.randomBytes(32).toString("hex");
-    user.verifyToken = verifyToken;
-    user.verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await user.save();
-
-    // Resend email
-    try {
-      const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-      const verificationUrl = `${backendBase}/api/auth/verify-email?email=${encodeURIComponent(
-        user.email
-      )}&token=${encodeURIComponent(verifyToken)}`;
-
-      await sendVerificationEmail(user.email, verificationUrl);
-      console.log(`✅ Verification email resent to ${user.email}`);
-    } catch (emailErr) {
-      console.error("⚠️ Email resend failed:", emailErr.message);
-    }
-
-    res.json({ message: "Verification email resent. Check your inbox." });
-  } catch (err) {
-    console.error("Resend verify error:", err);
-    res.status(500).json({ error: "Failed to resend verification email" });
-  }
-});
-
-// ─────────────────────────────────────────────────────
-// POST /api/auth/login
-// ─────────────────────────────────────────────────────
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
-    }
-
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    // Verify password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    // Check if verified
-    if (!user.isVerified) {
-      return res.status(403).json({
-        error: "Please verify your email before logging in",
-        email: user.email,
-      });
-    }
-
-    // Generate tokens
-    const accessToken = jwt.sign(
-      { id: user._id, email: user.email, isAdmin: user.isAdmin, isVerified: user.isVerified },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRE }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user._id, email: user.email },
-      JWT_REFRESH_SECRET,
-      { expiresIn: REFRESH_EXPIRE }
-    );
-
-    // Store refresh token
-    user.refreshTokens.push(refreshToken);
-    await user.save();
-
-    // Set refresh token as HttpOnly cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.json({
-      message: "Login successful",
-      accessToken,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        isVerified: user.isVerified,
-        isAdmin: user.isAdmin,
-      },
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Login failed" });
-  }
-});
-
-// ─────────────────────────────────────────────────────
-// POST /api/auth/refresh
-// ─────────────────────────────────────────────────────
-router.post("/refresh", async (req, res) => {
-  try {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
-
-    if (!refreshToken) {
-      return res.status(401).json({ error: "Refresh token required" });
-    }
-
-    // Verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
-    } catch (err) {
-      return res.status(401).json({ error: "Invalid refresh token" });
-    }
-
-    // Check if token is stored in user doc
-    const user = await User.findById(decoded.id);
-    if (!user || !user.refreshTokens.includes(refreshToken)) {
-      return res.status(401).json({ error: "Refresh token not found" });
-    }
-
-    // Generate new access token
-    const newAccessToken = jwt.sign(
-      { id: user._id, email: user.email, isAdmin: user.isAdmin, isVerified: user.isVerified },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRE }
-    );
-
-    res.json({
-      accessToken: newAccessToken,
-      user: {
-        id: user._id,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      },
-    });
-  } catch (err) {
-    console.error("Refresh error:", err);
-    res.status(500).json({ error: "Token refresh failed" });
-  }
-});
-
-// ─────────────────────────────────────────────────────
-// POST /api/auth/logout
-// ─────────────────────────────────────────────────────
-router.post("/logout", async (req, res) => {
-  try {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
-    const userId = req.body.userId;
-
-    if (userId && refreshToken) {
-      // Remove token from user's stored tokens
-      await User.findByIdAndUpdate(userId, {
-        $pull: { refreshTokens: refreshToken },
-      });
-    }
-
-    // Clear cookie
-    res.clearCookie("refreshToken");
-
-    res.json({ message: "Logout successful" });
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ error: "Logout failed" });
-  }
-});
-
-// Backward compatibility redirect
-router.post("/signup", async (req, res) => {
-  res.status(300).json({ message: "Use /register endpoint instead", redirect: "/register" });
-});
-
-// GET /api/auth/verify-email?email=...&token=...
 router.get("/verify-email", async (req, res) => {
   try {
     const { email, token } = req.query;
-
-    if (!email || !token) {
-      return res.status(400).send("Missing email or token");
-    }
+    if (!email || !token) return res.status(400).send("Missing email or token");
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send("User not found");
 
-    if (user.verifyToken !== token || !user.verifyExpires || user.verifyExpires < new Date()) {
+    const now = new Date();
+    if (user.verifyToken !== token || !user.verifyExpires || user.verifyExpires < now) {
       return res.status(400).send("Invalid or expired token");
     }
 
     user.isVerified = true;
-    user.verifyToken = null;
-    user.verifyExpires = null;
+    user.verifyToken = undefined;
+    user.verifyExpires = undefined;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+
     await user.save();
 
-    // Prefer the dev frontend URL when not in production so local verification
-    // redirects to the running Vite server (usually on 5173). Fall back to
-    // FRONTEND_URL or localhost:5173 if not set.
-    const frontend =
-      process.env.NODE_ENV === 'production'
-        ? process.env.FRONTEND_URL
-        : process.env.FRONTEND_URL_DEV || process.env.FRONTEND_URL || 'http://localhost:5173';
-
-    return res.redirect(`${frontend}/verify-success`);
+    res.send("Email verified successfully.");
   } catch (err) {
-    console.error("❌ Verify email error:", err);
-    return res.status(500).send("Server error");
+    console.error(err);
+    res.status(500).send("Verification failed");
   }
 });
 

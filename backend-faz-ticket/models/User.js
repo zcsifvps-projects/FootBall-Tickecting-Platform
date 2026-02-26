@@ -9,11 +9,21 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     mobile: { type: String },
     password: { type: String, required: true },
-    googleId: { type: String },
+    googleId: { type: String }, // for Google SSO later
+
+    // Verification / roles
     isVerified: { type: Boolean, default: false },
     isAdmin: { type: Boolean, default: false },
+
+    // Email verification by token (link)
     verifyToken: { type: String },
     verifyExpires: { type: Date },
+
+    // Email verification by code/OTP
+    verificationCode: { type: String },
+    verificationCodeExpires: { type: Date },
+
+    // Refresh tokens (if you’re storing them)
     refreshTokens: [{ type: String }],
   },
   { timestamps: true }
@@ -29,7 +39,7 @@ userSchema.pre("save", async function (next) {
 
 // Instance method to compare passwords
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 export default mongoose.model("User", userSchema);

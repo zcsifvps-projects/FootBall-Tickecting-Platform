@@ -1,23 +1,24 @@
 // server.js
-import 'dotenv/config';
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
-import authRouter from "./routes/auth.js"; // make sure this exists
+
+import authRouter from "./routes/auth.js";
 import matchesRouter from "./routes/matches.js";
 import ticketsRouter from "./routes/tickets.js";
 import { authenticate, requireAdmin, requireVerified } from "./middleware/auth.js";
 
 // ----------------------
-// Environment variables are loaded via `dotenv/config` import above
+// Optional safe env debug (does NOT print secrets)
 // ----------------------
+const mask = (v) => (v ? v.toString().slice(0, 2) + "***" + v.toString().slice(-2) : "(not set)");
+console.log("ENV DEBUG: EMAIL_USER=", mask(process.env.EMAIL_USER), " EMAIL_PASS present=", !!process.env.EMAIL_PASS);
 
-// ----------------------
-// Create Express app
-// ----------------------
 const app = express();
 
 // ----------------------
@@ -39,83 +40,62 @@ mongoose
   });
 
 // ----------------------
-// Middleware & Security
+// Middleware
 // ----------------------
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-if (process.env.NODE_ENV === "production") {
-  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
-}
 app.set("trust proxy", 1);
 
-// ----------------------
-// CORS
-// ----------------------
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:8080",  // Add this
-  process.env.FRONTEND_URL_DEV,
   process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_DEV,
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
 ].filter(Boolean);
+
+console.log("✅ Allowed CORS origins:", allowedOrigins);
 
 app.use(
   cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return cb(null, true);
-      }
+      try {
+        if (origin.startsWith("http://localhost:517")) return cb(null, true);
+      } catch (e) {}
 
-      return cb(null, false);
+      return cb(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// ----------------------
-// Parsers
-// ----------------------
 app.use(express.json({ limit: "200kb" }));
 app.use(cookieParser());
 
-// ----------------------
-// Rate Limiter (Public Routes)
-// ----------------------
 const publicLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use(["/api/frontend", "/api/public"], publicLimiter);
 
-// ----------------------
-// Debug Logging
-// ----------------------
-app.use((req, _res, next) => {
-  console.log(`📍 ${req.method} ${req.path}`);
-  next();
-});
+app.use(["/api/frontend", "/api/public"], publicLimiter);
 
 // ----------------------
 // Routes
 // ----------------------
-app.use("/api/auth", authRouter); // ✅ Auth routes (public)
-app.use(matchesRouter); // ✅ Matches routes (public list + admin create/update/delete)
-app.use(ticketsRouter); // ✅ Ticket routes (GET stats, update, delete)
+app.use("/api/auth", authRouter);
+app.use("/api/matches", matchesRouter);
+app.use("/api/tickets", ticketsRouter);
 
-// Health check
 app.get("/health", (_req, res) => res.send("ok"));
 
 // ----------------------
 // Error handler
 // ----------------------
 app.use((err, _req, res, _next) => {
-  if (err?.code === "LIMIT_FILE_SIZE") {
-    return res.status(400).json({ message: "❌ File too large. Max size is 30MB per file." });
-  }
   console.error("❌ Error:", err?.message || err);
   res.status(500).json({ status: "error", message: "Something went wrong" });
 });
