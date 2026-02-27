@@ -121,7 +121,7 @@ export default function PaymentSuccess() {
                   <div className="text-right">
                     <p className="text-xs font-bold text-slate-400 uppercase">Total Paid</p>
                     <p className="text-3xl font-black text-[#0e633d] italic tracking-tighter">
-                      ZMW {orderDetails.total.toFixed(2)}
+                      ZMW {(orderDetails.total ?? 0).toFixed(2)}
                     </p>
                   </div>
                 </div>

@@ -273,7 +273,7 @@ export default function CheckoutPage() {
 
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-lg">Total:</span>
-                    <span className="font-black text-2xl text-orange-600">K{totalPrice.toFixed(2)}</span>
+                    <span className="font-black text-2xl text-orange-600">K{(totalPrice ?? 0).toFixed(2)}</span>
                   </div>
 
                   <Button

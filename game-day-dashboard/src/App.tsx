@@ -27,6 +27,7 @@ const App = () => (
             <Route index element={<Dashboard />} />
             <Route path="matches" element={<Matches />} />
             <Route path="matches/create" element={<CreateMatch />} />
+            <Route path="matches/edit/:id" element={<CreateMatch />} />
             <Route path="orders" element={<Orders />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />

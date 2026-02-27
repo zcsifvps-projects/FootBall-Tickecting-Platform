@@ -24,10 +24,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from "@/hooks/use-toast";
 
 import { useCart } from "@/contexts/CartContext";
+import { initiatePayment } from "@/lib/tumenyi";
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cart } = useCart();
+  const { cart, clearCart } = useCart();
   const [isAuthed, setIsAuthed] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -100,22 +101,65 @@ export default function Checkout() {
   const isPhoneValid = phoneNumber.length === 9;
   const canPurchase = termsAccepted && isPhoneValid && !isProcessing;
 
-  const handleCompleteOrder = () => {
+  const handleCompleteOrder = async () => {
     if (!canPurchase) return;
     
     setIsProcessing(true);
+    const orderId = `FAZ-${Math.floor(100000 + Math.random() * 900000)}`;
     
-    setTimeout(() => {
+    try {
+      // Initiate Tumenyi Pay payment
+      const paymentResponse = await initiatePayment({
+        phoneNumber,
+        provider: momoProvider,
+        amount: total,
+        orderId,
+        description: `FAZ E-Tickets - ${cart.length} ticket(s)`,
+      });
+
+      if (!paymentResponse.success) {
+        toast({
+          variant: "destructive",
+          title: "Payment Failed",
+          description: paymentResponse.message,
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Show success message
+      toast({
+        title: "Payment Initiated",
+        description: paymentResponse.message,
+      });
+
+      // Simulate waiting for user to enter PIN (3-5 seconds)
+      // In production, this would poll the Tumenyi API for status
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      // Redirect to success page
+      // clear the cart immediately so the user sees it empty if they navigate back
+      clearCart();
       navigate("/payment/success", {
         state: {
           items: cart,
           total: total,
-          orderId: `FAZ-${Math.floor(100000 + Math.random() * 900000)}`,
-          phone: `+260${phoneNumber}`
+          orderId,
+          phone: `+260${phoneNumber}`,
+          transactionId: paymentResponse.transactionId,
+          provider: momoProvider.toUpperCase(),
         },
       });
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        variant: "destructive",
+        title: "Payment Error",
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
       setIsProcessing(false);
-    }, 2500);
+    }
   };
 
   return (
@@ -312,7 +356,7 @@ export default function Checkout() {
                       </div>
                       <div className="flex justify-between text-slate-500">
                         <span>Subtotal</span>
-                        <span className="text-slate-900">ZMW {total.toFixed(2)}</span>
+                        <span className="text-slate-900">ZMW {(total ?? 0).toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -320,7 +364,7 @@ export default function Checkout() {
                       <div className="flex justify-between items-center">
                         <span className="font-bold uppercase text-[10px] tracking-widest text-slate-400">Total Amount</span>
                         <p className="text-3xl font-black tracking-tighter">
-                          ZMW <span className="text-[#0e633d]">{total.toFixed(2)}</span>
+                          ZMW <span className="text-[#0e633d]">{(total ?? 0).toFixed(2)}</span>
                         </p>
                       </div>
                     </div>

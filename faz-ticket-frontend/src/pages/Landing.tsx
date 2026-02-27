@@ -44,7 +44,7 @@ export default function Landing() {
           <div
             className="absolute inset-0 bg-bottom bg-cover bg-no-repeat"
             style={{ 
-              backgroundImage: `url('https://res.cloudinary.com/dceqpo559/image/upload/v1769605728/levy_stadium_mgegvc.webp')` 
+              backgroundImage: `url('https://res.cloudinary.com/djuz1gf78/image/upload/v1772099703/levy_pbned0.webp')` // updated stadium URL 
             }}
           />
           

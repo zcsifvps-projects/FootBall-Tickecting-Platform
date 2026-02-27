@@ -1,9 +1,10 @@
-import { DollarSign, Ticket, Trophy, ShoppingCart, TrendingUp, Users, Activity } from "lucide-react";
+import { DollarSign, Ticket, Trophy, ShoppingCart, TrendingUp, Users, Activity, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/admin/StatCard";
-import { stats, orders, matches, dailySales } from "@/data/mockData";
+import { format } from "date-fns";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
@@ -14,13 +15,83 @@ const COLORS = ["#0e633d", "#ef7d00", "#FFCC00", "#000000", "#FFFFFF"];
 
 const statusColor: Record<string, string> = {
   confirmed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  completed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   pending: "bg-amber-500/10 text-amber-500 border-amber-500/20",
   refunded: "bg-rose-500/10 text-rose-500 border-rose-500/20",
   cancelled: "bg-slate-500/10 text-slate-500 border-slate-500/20",
 };
 
 export default function Dashboard() {
-  const recentOrders = orders.slice(0, 8);
+  // Fetch matches
+  const { data: matches = [], isLoading: matchesLoading } = useQuery({
+    queryKey: ["matches"],
+    queryFn: async () => {
+      const response = await fetch("http://localhost:5000/api/matches");
+      if (!response.ok) throw new Error("Failed to fetch matches");
+      return response.json();
+    },
+  });
+
+  // Fetch all tickets
+  const { data: tickets = [], isLoading: ticketsLoading } = useQuery({
+    queryKey: ["allTickets"],
+    queryFn: async () => {
+      const response = await fetch("http://localhost:5000/api/tickets/admin/all");
+      if (!response.ok) throw new Error("Failed to fetch tickets");
+      return response.json();
+    },
+  });
+
+  // Calculate stats from real data
+  const completedTickets = tickets.filter((t: any) => t.status === "completed");
+  const totalRevenue = completedTickets.reduce((sum: number, t: any) => sum + (t.totalPrice || 0), 0);
+  const totalTicketsSold = completedTickets.reduce((sum: number, t: any) => sum + (t.quantity || 0), 0);
+  const totalOrders = tickets.length;
+  const activeMatches = matches.length;
+
+  // Group tickets by zone for pie chart
+  const revenueByZone = Object.entries(
+    tickets.reduce((acc: Record<string, number>, t: any) => {
+      if (t.status === "completed") {
+        acc[t.zone] = (acc[t.zone] || 0) + (t.totalPrice || 0);
+      }
+      return acc;
+    }, {})
+  ).map(([zone, revenue]) => ({ zone, revenue: revenue as number }));
+
+  // Generate daily sales from tickets (last 7 days)
+  const dailySales = Array.from({ length: 7 }).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    const dateStr = format(date, "MM/dd");
+
+    const daySales = tickets.filter((t: any) => {
+      const tDate = new Date(t.createdAt);
+      return format(tDate, "MM/dd") === dateStr && t.status === "completed";
+    });
+
+    return {
+      date: dateStr,
+      revenue: daySales.reduce((sum: number, t: any) => sum + (t.totalPrice || 0), 0),
+      tickets: daySales.reduce((sum: number, t: any) => sum + (t.quantity || 0), 0),
+    };
+  });
+
+  // Recent orders (last 8)
+  const recentOrders = tickets
+    .filter((t: any) => t.status === "completed")
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
+
+  const isLoading = matchesLoading || ticketsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 p-2">
@@ -41,9 +112,9 @@ export default function Dashboard() {
       {/* Sporty Stat Cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative overflow-hidden group">
-          <StatCard 
+        <StatCard 
             title="Total Revenue" 
-            value={`ZMW ${stats.totalRevenue.toLocaleString()}`} 
+            value={`ZMW ${totalRevenue.toLocaleString()}`} 
             subtitle="+12% VS LAST MATCH" 
             icon={DollarSign} 
             className="border-none bg-gradient-to-br from-[#0e633d] to-[#063b24] text-white shadow-xl"
@@ -53,9 +124,9 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <StatCard title="Tickets Sold" value={stats.totalTickets.toLocaleString()} subtitle="92% SEATING CAPACITY" icon={Ticket} className="border-l-4 border-l-[#ef7d00] shadow-md" />
-        <StatCard title="Active Matches" value={stats.activeMatches} subtitle="3 LIVE NOW" icon={Trophy} className="border-l-4 border-l-[#FFCC00] shadow-md" />
-        <StatCard title="Total Orders" value={stats.totalOrders} subtitle="ACROSS ALL CHANNELS" icon={ShoppingCart} className="border-l-4 border-l-black shadow-md" />
+        <StatCard title="Tickets Sold" value={totalTicketsSold.toLocaleString()} subtitle="CONFIRMED SALES" icon={Ticket} className="border-l-4 border-l-[#ef7d00] shadow-md" />
+        <StatCard title="Active Matches" value={activeMatches} subtitle="MATCHES IN SYSTEM" icon={Trophy} className="border-l-4 border-l-[#FFCC00] shadow-md" />
+        <StatCard title="Total Orders" value={totalOrders} subtitle="ACROSS ALL CHANNELS" icon={ShoppingCart} className="border-l-4 border-l-black shadow-md" />
       </div>
 
       {/* Main Charts Area */}
@@ -96,29 +167,35 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-600">Stadium Distribution</CardTitle>
           </CardHeader>
           <CardContent className="h-80 pt-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie 
-                  data={stats.revenueByZone} 
-                  dataKey="revenue" 
-                  nameKey="zone" 
-                  innerRadius={60} 
-                  outerRadius={85} 
-                  paddingAngle={5}
-                >
-                  {stats.revenueByZone.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-3 mt-2">
-               {stats.revenueByZone.slice(0, 3).map((z, i) => (
-                 <div key={i} className="flex items-center gap-1">
-                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                   <span className="text-[10px] font-bold uppercase text-slate-500">{z.zone}</span>
-                 </div>
-               ))}
-            </div>
+            {revenueByZone.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie 
+                      data={revenueByZone} 
+                      dataKey="revenue" 
+                      nameKey="zone" 
+                      innerRadius={60} 
+                      outerRadius={85} 
+                      paddingAngle={5}
+                    >
+                      {revenueByZone.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap justify-center gap-3 mt-2">
+                   {revenueByZone.slice(0, 3).map((z, i) => (
+                     <div key={i} className="flex items-center gap-1">
+                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                       <span className="text-[10px] font-bold uppercase text-slate-500">{z.zone}</span>
+                     </div>
+                   ))}
+                </div>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center text-slate-500">No zone data</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -158,25 +235,34 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentOrders.map((order) => {
-                  const match = matches.find(m => m.id === order.matchId);
+                {recentOrders.map((ticket: any) => {
+                  const buyerName = ticket.userId
+                    ? `${ticket.userId.firstName} ${ticket.userId.lastName}`
+                    : "Guest";
                   return (
-                    <TableRow key={order.id} className="hover:bg-slate-50/80 transition-colors border-b-slate-100">
-                      <TableCell className="font-bold text-slate-700">{order.buyerName}</TableCell>
+                    <TableRow key={ticket._id} className="hover:bg-slate-50/80 transition-colors border-b-slate-100">
+                      <TableCell className="font-bold text-slate-700">{buyerName}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black text-[#0e633d] uppercase tracking-tighter truncate w-32">
-                            {match ? `${match.homeTeam} vs ${match.awayTeam}` : 'World Cup Qualifier'}
+                            {ticket.matchId
+                              ? `${ticket.matchId.homeTeam} vs ${ticket.matchId.awayTeam}`
+                              : "Match"}
                           </span>
-                          <span className="text-[9px] text-slate-400 font-bold uppercase">{order.zone}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase">{ticket.zone}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono font-bold text-slate-600">
-                        {order.amount}
+                        K {(ticket.totalPrice ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className={`text-[9px] font-black uppercase ${statusColor[order.status]}`}>
-                          {order.status}
+                        <Badge
+                          variant="outline"
+                          className={`text-[9px] font-black uppercase ${
+                            statusColor[ticket.status] || "bg-slate-500/10 text-slate-500"
+                          }`}
+                        >
+                          {ticket.status}
                         </Badge>
                       </TableCell>
                     </TableRow>

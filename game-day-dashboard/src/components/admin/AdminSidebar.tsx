@@ -24,7 +24,7 @@ export function AdminSidebar() {
           {/* THE LOGO UPGRADE */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
             <img 
-              src="https://res.cloudinary.com/dceqpo559/image/upload/v1769602379/faz_logo_cl3wx5.png" 
+              src="https://res.cloudinary.com/djuz1gf78/image/upload/v1772100586/fazLogo_kewemd.png" 
               alt="FAZ Logo" 
               className="h-8 w-8 object-contain"
             />

@@ -98,13 +98,16 @@ export default function VerifyEmail() {
 
       toast({
         title: "Email Verified!",
-        description: "Your email has been verified. Redirecting...",
+        description: "Your email has been verified. Please sign in to continue.",
       });
 
       sessionStorage.removeItem("register_email");
       localStorage.removeItem("pendingEmail");
 
-      setTimeout(() => navigate("/matches"), 1500);
+      // redirect user to signin page with email param so the field is prefilled
+      setTimeout(() => {
+        navigate(`/auth/signin?email=${encodeURIComponent(email)}`);
+      }, 1500);
     } catch (err) {
       toast({
         variant: "destructive",

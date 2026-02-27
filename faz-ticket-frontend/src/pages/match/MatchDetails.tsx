@@ -167,7 +167,7 @@ export default function MatchDetails() {
           {/* Hero Match Header */}
           <div className="relative rounded-[2.5rem] overflow-hidden mb-10 shadow-2xl h-[400px]">
             <img
-              src={match.imageUrl || "https://res.cloudinary.com/dceqpo559/image/upload/v1770295140/fb_image_a6tiqe.jpg"}
+              src={match.imageUrl || "https://res.cloudinary.com/djuz1gf78/image/upload/v1772099703/levy_pbned0.webp"}
               className="absolute inset-0 w-full h-full object-cover"
               alt={`${match.homeTeam} vs ${match.awayTeam}`}
             />
@@ -389,12 +389,12 @@ export default function MatchDetails() {
                       <div className="space-y-4">
                         <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           <span>Price per seat</span>
-                          <span className="text-slate-900">ZMW {selectedBlock.price.toFixed(2)}</span>
+                          <span className="text-slate-900">ZMW {(selectedBlock?.price ?? 0).toFixed(2)}</span>
                         </div>
                         <div className="pt-4 flex justify-between items-end">
                            <span className="font-black text-[#0e633d] text-lg uppercase">Total Amount</span>
                            <p className="text-2xl font-black text-[#0e633d] tracking-tighter">
-                             K <span className="text-[#ef7d00]">{totalPrice.toFixed(2)}</span>
+                             K <span className="text-[#ef7d00]">{(totalPrice ?? 0).toFixed(2)}</span>
                            </p>
                         </div>
                       </div>

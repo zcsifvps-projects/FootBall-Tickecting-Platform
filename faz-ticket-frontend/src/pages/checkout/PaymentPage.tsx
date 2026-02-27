@@ -1,7 +1,8 @@
 // faz-ticket-frontend/src/pages/checkout/PaymentPage.tsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCart } from "@/contexts/CartContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface PaymentState {
 export default function PaymentPage() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const location = useLocation();
   const { toast } = useToast();
 
@@ -43,10 +45,40 @@ export default function PaymentPage() {
       if (!response.ok) throw new Error("Payment confirmation failed");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setStatus("success");
       toast({ title: "Success!", description: "Payment completed. Your tickets are ready!" });
-      setTimeout(() => navigate("/cart"), 2000);
+
+      // clear any leftover cart data
+      clearCart();
+
+      // build a simplified ticket item for the success page
+      const ticket = data?.ticket;
+      const item = ticket
+        ? {
+            matchName: ticket.matchId
+              ? `${ticket.matchId.homeTeam} vs ${ticket.matchId.awayTeam}`
+              : "",
+            date: ticket.matchId?.date || "",
+            stadium: ticket.matchId?.stadium || ticket.matchId?.city || "",
+            zone: ticket.zone,
+            gate: ticket.gate || "",
+            row: ticket.row || "",
+            seats: ticket.seats || [],
+            price: ticket.pricePerTicket,
+            quantity: ticket.quantity,
+          }
+        : null;
+
+      setTimeout(() => {
+        if (item) {
+          navigate("/payment/success", {
+            state: { items: [item], total: ticket.totalPrice, orderId: ticket._id },
+          });
+        } else {
+          navigate("/cart");
+        }
+      }, 2000);
     },
     onError: (err: any) => {
       setStatus("error");
@@ -174,7 +206,7 @@ export default function PaymentPage() {
                           Processing...
                         </>
                       ) : (
-                        `Pay K${paymentState.totalPrice.toFixed(2)}`
+                        `Pay K${(paymentState.totalPrice ?? 0).toFixed(2)}`
                       )}
                     </Button>
 
@@ -205,7 +237,7 @@ export default function PaymentPage() {
                   <div className="flex justify-between items-center">
                     <span className="font-bold">Total Amount:</span>
                     <span className="font-black text-2xl text-orange-600">
-                      K{paymentState.totalPrice.toFixed(2)}
+                      K{(paymentState.totalPrice ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,20 @@ export default function SignIn() {
     email: "",
     password: "",
   });
+
+  // prefill email from query or session storage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const qEmail = params.get("email");
+    const saved = sessionStorage.getItem("register_email");
+    if (qEmail) {
+      setFormData((f) => ({ ...f, email: qEmail }));
+      sessionStorage.removeItem("register_email");
+    } else if (saved) {
+      setFormData((f) => ({ ...f, email: saved }));
+      sessionStorage.removeItem("register_email");
+    }
+  }, []);
   const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,6 +163,17 @@ export default function SignIn() {
               <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
+
+              {/* Forgot Password Link */}
+              <div className="text-center mt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/auth/forgot-password")}
+                  className="text-sm text-[#0e633d] hover:text-[#0a4a2e] font-semibold underline"
+                >
+                  Forgot your password?
+                </button>
+              </div>
             </form>
 
             <Separator className="my-6" />

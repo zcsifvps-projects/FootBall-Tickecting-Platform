@@ -11,10 +11,30 @@ const router = express.Router();
 // ─────────────────────────────────────────────────────
 
 /**
- * POST /api/tickets
+ * GET /api/tickets/admin/all
+ * Fetch all tickets for admin dashboard (admin only)
+ * Accessible to admin users to view orders across all matches
+ */
+router.get("/admin/all", async (req, res) => {
+  try {
+    // Fetch all tickets with match and user info
+    const tickets = await Ticket.find()
+      .populate("matchId", "homeTeam awayTeam date time stadium city")
+      .populate("userId", "firstName lastName email")
+      .sort({ createdAt: -1 });
+
+    res.json(tickets);
+  } catch (err) {
+    console.error("Error fetching all tickets:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /
  * Create a new ticket reservation (authenticated users only)
  */
-router.post("/api/tickets", authenticate, requireVerified, async (req, res) => {
+router.post("/", authenticate, requireVerified, async (req, res) => {
   try {
     const { matchId, quantity, zone, customerEmail, customerPhone, seats } = req.body;
 
@@ -63,10 +83,10 @@ router.post("/api/tickets", authenticate, requireVerified, async (req, res) => {
 });
 
 /**
- * GET /api/tickets/:matchId
+ * GET /:matchId
  * Fetch all tickets for a match (for dashboard analytics)
  */
-router.get("/api/tickets/:matchId", async (req, res) => {
+router.get("/:matchId", async (req, res) => {
   try {
     const { matchId } = req.params;
 
@@ -92,10 +112,10 @@ router.get("/api/tickets/:matchId", async (req, res) => {
 });
 
 /**
- * PATCH /api/tickets/:id
+ * PATCH /:id
  * Update ticket status (called after successful payment)
  */
-router.patch("/api/tickets/:id", async (req, res) => {
+router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { status, paymentId, paymentMethod } = req.body;
@@ -123,10 +143,10 @@ router.patch("/api/tickets/:id", async (req, res) => {
 });
 
 /**
- * GET /api/tickets/:id
+ * GET /:id
  * Fetch a specific ticket by ID
  */
-router.get("/api/tickets/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id).populate("matchId");
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
@@ -138,10 +158,10 @@ router.get("/api/tickets/:id", async (req, res) => {
 });
 
 /**
- * DELETE /api/tickets/:id
+ * DELETE /:id
  * Cancel a ticket (refund if completed)
  */
-router.delete("/api/tickets/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     // Fetch ticket first before using ticket.status
     const ticket = await Ticket.findById(req.params.id);

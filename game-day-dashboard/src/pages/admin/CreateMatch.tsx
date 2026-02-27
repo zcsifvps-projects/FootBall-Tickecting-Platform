@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, 
   Plus, 
@@ -10,7 +10,8 @@ import {
   Clock, 
   ShieldCheck, 
   Zap,
-  ChevronDown 
+  ChevronDown,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { teams } from "@/data/mockData";
 import type { MatchCategory } from "@/data/types";
 
@@ -45,6 +47,24 @@ const stadiumOptions = [
 export default function CreateMatch() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // load existing match when editing
+  const { data: existingMatch, isLoading: matchLoading } = useQuery({
+    queryKey: ["adminMatch", id],
+    queryFn: () => adminApi.matches.getById(id || ""),
+    enabled: isEdit,
+  });
+
+  if (isEdit && matchLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   const [saleEndTime, setSaleEndTime] = useState("15:00");
 
   const [homeTeam, setHomeTeam] = useState("");
@@ -67,7 +87,9 @@ export default function CreateMatch() {
     { name: "South Wing", gate: "Gate 3", price: "100", totalSeats: "0" },
   ]);
 
+  // recalc wing seats when choosing a venue, but skip if we are editing an existing match
   useEffect(() => {
+    if (isEdit) return;
     if (venue) {
       const selectedStadium = stadiumOptions.find((s) => s.name === venue);
       if (selectedStadium) {
@@ -84,7 +106,7 @@ export default function CreateMatch() {
         setWings(updatedWings);
       }
     }
-  }, [venue, wings.length]);
+  }, [venue, wings.length, isEdit]);
 
   const addWing = () => setWings([...wings, { name: "", gate: "", price: "", totalSeats: "0" }]);
   const removeWing = (i: number) => setWings(wings.filter((_, idx) => idx !== i));
@@ -97,26 +119,77 @@ export default function CreateMatch() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (newMatch: any) => adminApi.matches.create(newMatch),
+    mutationFn: async (newMatch: any) => {
+      if (isEdit && id) {
+        return adminApi.matches.update(id, newMatch);
+      }
+      return adminApi.matches.create(newMatch);
+    },
     onSuccess(data) {
-      toast({ title: "Match Created", description: `${data.homeTeam} vs ${data.awayTeam} successfully published.` });
+      toast({ title: isEdit ? "Match Updated" : "Match Created", description: `${data.homeTeam} vs ${data.awayTeam} successfully ${isEdit ? "updated" : "published"}.` });
       queryClient.invalidateQueries({ queryKey: ["adminMatches"] });
       navigate("/admin/matches");
     },
     onError(err: any) {
-      toast({ variant: "destructive", title: "Create Failed", description: err?.message || "Could not create match" });
+      toast({ variant: "destructive", title: isEdit ? "Update Failed" : "Create Failed", description: err?.message || `Could not ${isEdit ? "update" : "create"} match` });
     }
   });
 
   const { mutate } = mutation;
 
+  // populate form when existingMatch loads
+  useEffect(() => {
+    if (existingMatch) {
+      setHomeTeam(existingMatch.homeTeam || "");
+      setAwayTeam(existingMatch.awayTeam || "");
+      setCategory(existingMatch.competition || existingMatch.category || "");
+      setDate(existingMatch.date || "");
+      setTime(existingMatch.time || "");
+      setVenue(existingMatch.stadium || existingMatch.venue || "");
+      setSaleStart(existingMatch.saleStart || "");
+      setSaleEnd(existingMatch.saleEnd || "");
+      setMaxTickets(existingMatch.maxTickets?.toString() || "4");
+      setIsFeatured(existingMatch.isFeatured || false);
+      setBadge(existingMatch.description || "");
+      if (existingMatch.zones) {
+        setWings(existingMatch.zones.map((z: any) => ({
+          name: z.name,
+          gate: z.gate,
+          price: z.price?.toString() || "",
+          totalSeats: z.totalSeats?.toString() || "0",
+        })));
+      }
+    }
+  }, [existingMatch]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: Record<string, string> = {};
+
+    // Validation
+    if (!homeTeam.trim()) errors.homeTeam = "Home team is required";
+    if (!awayTeam.trim()) errors.awayTeam = "Away team is required";
+    if (homeTeam === awayTeam && homeTeam.trim()) errors.awayTeam = "Teams must be different";
+    if (!category) errors.category = "Category is required";
+    if (!date) errors.date = "Date is required";
+    if (!time) errors.time = "Time is required";
+    if (!venue) errors.venue = "Venue is required";
+    if (wings.length === 0) errors.wings = "At least one seating zone required";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast({ variant: "destructive", title: "Validation Failed", description: "Please check all required fields" });
+      return;
+    }
+
+    setFormErrors({});
+
     const selectedStadium = stadiumOptions.find((s) => s.name === venue);
     if (selectedStadium) {
       const totalCapacity = parseInt(selectedStadium.capacity.replace(/,/g, ""), 10);
       const currentTotal = wings.reduce((sum, w) => sum + parseInt(w.totalSeats || "0", 10), 0);
       if (currentTotal !== totalCapacity) {
+        setFormErrors({ capacity: `Mismatch` });
         toast({
           variant: "destructive",
           title: "Capacity Mismatch",
@@ -159,9 +232,11 @@ export default function CreateMatch() {
           </Button>
           <div>
             <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">
-              Create <span className="text-[#0e633d]">FAZ</span> Match
+              {isEdit ? "Edit" : "Create"} <span className="text-[#0e633d]">FAZ</span> Match
             </h2>
-            <p className="text-base text-slate-500 font-medium italic">Configure matchday logistics and ticketing</p>
+            <p className="text-base text-slate-500 font-medium italic">
+              {isEdit ? "Modify" : "Configure"} matchday logistics and ticketing
+            </p>
           </div>
         </div>
         
@@ -195,11 +270,11 @@ export default function CreateMatch() {
                   <Input 
                     placeholder="Type team name..." 
                     value={homeTeam} 
-                    onChange={(e) => setHomeTeam(e.target.value)}
-                    className="h-14 rounded-xl border-slate-200 bg-white font-bold text-base pr-12 focus:ring-[#0e633d]"
+                    onChange={(e) => { setHomeTeam(e.target.value); setFormErrors({ ...formErrors, homeTeam: "" }); }}
+                    className={cn("h-14 rounded-xl border-slate-200 bg-white font-bold text-base pr-12 focus:ring-[#0e633d]", formErrors.homeTeam && "border-rose-300 ring-1 ring-rose-200")}
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <Select onValueChange={setHomeTeam}>
+                    <Select onValueChange={(val) => { setHomeTeam(val); setFormErrors({ ...formErrors, homeTeam: "" }); }}>
                       <SelectTrigger className="w-8 h-8 border-none bg-slate-100 hover:bg-slate-200 p-0 focus:ring-0 rounded-lg">
                         <ChevronDown className="h-4 w-4 text-slate-500" />
                       </SelectTrigger>
@@ -211,6 +286,7 @@ export default function CreateMatch() {
                     </Select>
                   </div>
                 </div>
+                {formErrors.homeTeam && <p className="text-xs text-rose-600 font-semibold">{formErrors.homeTeam}</p>}
               </div>
 
               {/* Away Team Input + Suggestion Select */}
@@ -220,11 +296,11 @@ export default function CreateMatch() {
                   <Input 
                     placeholder="Type team name..." 
                     value={awayTeam} 
-                    onChange={(e) => setAwayTeam(e.target.value)}
-                    className="h-14 rounded-xl border-slate-200 bg-white font-bold text-base pr-12 focus:ring-[#0e633d]"
+                    onChange={(e) => { setAwayTeam(e.target.value); setFormErrors({ ...formErrors, awayTeam: "" }); }}
+                    className={cn("h-14 rounded-xl border-slate-200 bg-white font-bold text-base pr-12 focus:ring-[#0e633d]", formErrors.awayTeam && "border-rose-300 ring-1 ring-rose-200")}
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <Select onValueChange={setAwayTeam}>
+                    <Select onValueChange={(val) => { setAwayTeam(val); setFormErrors({ ...formErrors, awayTeam: "" }); }}>
                       <SelectTrigger className="w-8 h-8 border-none bg-slate-100 hover:bg-slate-200 p-0 focus:ring-0 rounded-lg">
                         <ChevronDown className="h-4 w-4 text-slate-500" />
                       </SelectTrigger>
@@ -236,16 +312,18 @@ export default function CreateMatch() {
                     </Select>
                   </div>
                 </div>
+                {formErrors.awayTeam && <p className="text-xs text-rose-600 font-semibold">{formErrors.awayTeam}</p>}
               </div>
 
               <div className="space-y-2 sm:col-span-2">
                 <Label className="text-sm font-bold uppercase text-slate-600 ml-1">Match Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-14 rounded-xl border-slate-200 bg-white font-bold text-base">
+                <Select value={category} onValueChange={(val) => { setCategory(val); setFormErrors({ ...formErrors, category: "" }); }}>
+                  <SelectTrigger className={cn("h-14 rounded-xl border-slate-200 bg-white font-bold text-base", formErrors.category && "border-rose-300 ring-1 ring-rose-200")}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>{categories.map(c => <SelectItem key={c} value={c} className="text-base font-semibold">{c}</SelectItem>)}</SelectContent>
                 </Select>
+                {formErrors.category && <p className="text-xs text-rose-600 font-semibold">{formErrors.category}</p>}
               </div>
             </CardContent>
           </Card>
@@ -370,11 +448,19 @@ export default function CreateMatch() {
           </Card>
 
           <div className="space-y-4 pt-4">
-            <Button type="submit" className="w-full h-16 bg-[#0e633d] hover:bg-emerald-800 text-white rounded-2xl shadow-xl shadow-emerald-900/30 transition-all active:scale-[0.98] font-black italic uppercase tracking-widest text-xl">
-              Publish FAZ Match
+            <Button 
+              type="submit" 
+              disabled={mutation.isPending || matchLoading}
+              className="w-full h-16 bg-[#0e633d] hover:bg-emerald-800 text-white rounded-2xl shadow-xl shadow-emerald-900/30 transition-all active:scale-[0.98] font-black italic uppercase tracking-widest text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {mutation.isPending ? (
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {isEdit ? "Updating..." : "Publishing..."}</>
+              ) : (
+                isEdit ? "Update FAZ Match" : "Publish FAZ Match"
+              )}
             </Button>
             <Button type="button" variant="ghost" className="w-full h-12 text-slate-500 font-black uppercase text-sm tracking-widest hover:bg-slate-50 rounded-xl" onClick={() => navigate("/admin/matches")}>
-              Cancel Draft
+              Cancel
             </Button>
           </div>
         </div>

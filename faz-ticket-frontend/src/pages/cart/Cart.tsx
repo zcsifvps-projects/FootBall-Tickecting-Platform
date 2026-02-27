@@ -130,7 +130,7 @@ export default function Cart() {
                               Subtotal
                             </p>
                             <p className="text-xl font-bold text-[#0e633d]">
-                              ZMW {item.price.toFixed(2)}
+                              ZMW {(item.price ?? 0).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -171,7 +171,7 @@ export default function Cart() {
                           Total Amount
                         </span>
                         <p className="text-3xl font-bold text-white tracking-tighter">
-                          ZMW {totalPrice.toFixed(2)}
+                          ZMW {(totalPrice ?? 0).toFixed(2)}
                         </p>
                       </div>
                     </div>

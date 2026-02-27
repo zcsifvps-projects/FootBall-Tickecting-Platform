@@ -48,6 +48,7 @@ app.set("trust proxy", 1);
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.FRONTEND_URL_DEV,
+  "http://localhost:8080",    // added for vite/default dev port used by game-day-dashboard
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5175",
@@ -58,13 +59,18 @@ console.log("✅ Allowed CORS origins:", allowedOrigins);
 app.use(
   cors({
     origin(origin, cb) {
+      // allow server-to-server requests or tools without an origin
       if (!origin) return cb(null, true);
+
+      // permit configured origins
       if (allowedOrigins.includes(origin)) return cb(null, true);
 
+      // development convenience: allow any localhost port
       try {
-        if (origin.startsWith("http://localhost:517")) return cb(null, true);
+        if (origin.startsWith("http://localhost")) return cb(null, true);
       } catch (e) {}
 
+      console.warn("⚠️ CORS blocked origin:", origin);
       return cb(new Error("Not allowed by CORS"));
     },
     credentials: true,

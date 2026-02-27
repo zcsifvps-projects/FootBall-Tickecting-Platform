@@ -14,16 +14,57 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useEffect } from "react";
+import { useCart } from "@/contexts/CartContext";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { clearCart } = useCart();
 
-  const { items, total, orderId } = location.state || {
-    items: [],
-    total: 0,
-    orderId: "FAZ-240033",
+  // location.state may be undefined if user refreshes or navigates directly
+  const { items = [], total = 0, orderId = "" } = (location.state || {}) as {
+    items?: any[];
+    total?: number;
+    orderId?: string;
   };
+
+  // when we first show the page after a successful purchase, persist tickets and clear cart
+  useEffect(() => {
+    if (items.length > 0) {
+      try {
+        const existing = JSON.parse(localStorage.getItem("my-tickets") || "[]");
+        const enriched = items.map((item, idx) => {
+          // normalize fields for MyTickets page
+          const normalized = {
+            id: `${orderId}-${idx}`,
+            match: item.match || item.matchName || "",
+            competition: item.competition || "",
+            date: item.date || "",
+            time: item.time || "",
+            stadium: item.stadium || "",
+            city: item.city || "",
+            zone: item.zone || "",
+            section: item.section || "",
+            row: item.row || "",
+            seats: item.seats || [],
+            quantity: item.quantity || 0,
+            total:
+              item.total ??
+              (item.price && item.quantity ? item.price * item.quantity : 0),
+            orderDate: new Date().toISOString(),
+            // keep through any other metadata (orderId etc)
+            ...item,
+          };
+          return normalized;
+        });
+        localStorage.setItem("my-tickets", JSON.stringify([...existing, ...enriched]));
+      } catch (err) {
+        console.error("Failed to persist tickets", err);
+      }
+      clearCart();
+    }
+  }, [items, orderId, clearCart]);
 
   const primaryMatch = items.length > 0 ? items[0] : null;
 
@@ -69,7 +110,7 @@ export default function PaymentSuccess() {
 
     {/* FAZ WATERMARK */}
     <img
-      src="https://res.cloudinary.com/dceqpo559/image/upload/v1769602379/faz_logo_cl3wx5.png"
+      src="https://res.cloudinary.com/djuz1gf78/image/upload/v1772100586/fazLogo_kewemd.png"
       alt="FAZ Watermark"
       className="absolute left-12 top-1/2 -translate-y-1/2 w-[280px] opacity-[0.07] z-0 pointer-events-none"
     />
@@ -85,7 +126,7 @@ export default function PaymentSuccess() {
         </div>
 
         <h2 className="text-[38px] font-black text-[#0e633d] leading-[1.05] tracking-tight mb-4">
-          {primaryMatch?.matchName || "ZAMBIA VS MALAWI"}
+          {primaryMatch?.match || primaryMatch?.matchName || "ZAMBIA VS MALAWI"}
         </h2>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -108,7 +149,7 @@ export default function PaymentSuccess() {
             Wing/Gate
           </p>
           <p className="text font-black text-[#0e633d]">
-            {items[0]?.zone || "NORTH WING"}
+            {items[0]?.zone || items[0]?.zone || "NORTH WING"}
             <span className="text-[#ef7d00] ml-1">{items[0]?.gate || "9"}</span>
           </p>
         </div>
@@ -151,7 +192,7 @@ export default function PaymentSuccess() {
         </p>
 
         <p className="text-xl font-black text-[#0e633d]">
-          ZMW K{total.toFixed(2)}
+          ZMW K{(total ?? 0).toFixed(2)}
         </p>
 
         <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#ef7d00] mt-2">

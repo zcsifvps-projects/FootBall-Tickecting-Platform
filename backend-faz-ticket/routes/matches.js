@@ -9,7 +9,7 @@ const router = express.Router();
 // ========================
 
 // Get all matches (public)
-router.get("/api/matches", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { status, competition } = req.query;
     const filter = {};
@@ -25,7 +25,7 @@ router.get("/api/matches", async (req, res) => {
 });
 
 // Get single match by ID
-router.get("/api/matches/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) {
@@ -42,7 +42,7 @@ router.get("/api/matches/:id", async (req, res) => {
 // ========================
 
 // Create a new match (admin only)
-router.post("/api/admin/matches", authenticate, requireAdmin, async (req, res) => {
+router.post("/admin/matches", authenticate, requireAdmin, async (req, res) => {
   try {
     // TODO: Add authentication middleware to verify admin
     const {
@@ -99,7 +99,7 @@ router.post("/api/admin/matches", authenticate, requireAdmin, async (req, res) =
 });
 
 // Update a match (admin only)
-router.put("/api/admin/matches/:id", authenticate, requireAdmin, async (req, res) => {
+router.put("/admin/matches/:id", authenticate, requireAdmin, async (req, res) => {
   try {
     const match = await Match.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -117,7 +117,7 @@ router.put("/api/admin/matches/:id", authenticate, requireAdmin, async (req, res
 });
 
 // Delete a match (admin only)
-router.delete("/api/admin/matches/:id", authenticate, requireAdmin, async (req, res) => {
+router.delete("/admin/matches/:id", authenticate, requireAdmin, async (req, res) => {
   try {
     const match = await Match.findByIdAndDelete(req.params.id);
 
@@ -132,7 +132,7 @@ router.delete("/api/admin/matches/:id", authenticate, requireAdmin, async (req, 
 });
 
 // Get all matches for admin panel (admin only)
-router.get("/api/admin/matches", authenticate, requireAdmin, async (req, res) => {
+router.get("/admin/matches", authenticate, requireAdmin, async (req, res) => {
   try {
     const matches = await Match.find().sort({ date: 1 });
     res.json(matches);
@@ -142,7 +142,7 @@ router.get("/api/admin/matches", authenticate, requireAdmin, async (req, res) =>
 });
 
 // Update ticket sales count (when order is placed)
-router.patch("/api/matches/:id/tickets", async (req, res) => {
+router.patch("/:id/tickets", async (req, res) => {
   try {
     const { quantity } = req.body;
 

@@ -22,12 +22,19 @@ const userSchema = new mongoose.Schema(
     // Email verification by code/OTP
     verificationCode: { type: String },
     verificationCodeExpires: { type: Date },
-
+    // Password reset token
+    resetToken: { type: String },
+    resetTokenExpires: { type: Date },
     // Refresh tokens (if you’re storing them)
     refreshTokens: [{ type: String }],
   },
   { timestamps: true }
 );
+
+// Add role field getter for backward compatibility
+userSchema.virtual("role").get(function() {
+  return this.isAdmin ? "admin" : "user";
+});
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {

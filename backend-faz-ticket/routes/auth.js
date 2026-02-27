@@ -190,4 +190,156 @@ router.get("/verify-email", async (req, res) => {
   }
 });
 
+// ========================
+// LOGIN ENDPOINT
+// ========================
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // Check if verified
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        error: "Please verify your email before logging in",
+        email: user.email 
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    // Generate JWT
+    const accessToken = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRE }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      JWT_REFRESH_SECRET,
+      { expiresIn: REFRESH_EXPIRE }
+    );
+
+    return res.json({
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// ========================
+// FORGOT PASSWORD ENDPOINT
+// ========================
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal if email exists (security)
+      return res.json({ 
+        message: "If email exists, reset link has been sent" 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetToken = resetToken;
+    user.resetTokenExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+
+    await user.save();
+
+    // Send reset email
+    const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetUrl = `${frontendBase}/auth/reset-password?email=${encodeURIComponent(email)}&token=${resetToken}`;
+
+    try {
+      await transporter.sendMail({
+        from: EMAIL_USER,
+        to: email,
+        subject: "FAZ Ticketing - Reset Your Password",
+        html: `
+          <p>You requested to reset your password.</p>
+          <p>Click the link below to reset your password (link expires in 1 hour):</p>
+          <a href="${resetUrl}">${resetUrl}</a>
+          <p>If you didn't request this, ignore this email.</p>
+        `,
+      });
+    } catch (emailErr) {
+      console.error("Email send failed:", emailErr);
+    }
+
+    return res.json({ 
+      message: "If email exists, reset link has been sent" 
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
+// ========================
+// RESET PASSWORD ENDPOINT
+// ========================
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, token, password } = req.body;
+
+    if (!email || !token || !password) {
+      return res.status(400).json({ error: "Email, token, and password required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const now = new Date();
+    if (user.resetToken !== token || !user.resetTokenExpires || user.resetTokenExpires < now) {
+      return res.status(400).json({ error: "Invalid or expired reset token" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetToken = undefined;
+    user.resetTokenExpires = undefined;
+
+    await user.save();
+
+    return res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Failed to reset password" });
+  }
+});
+
 export default router;

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Search, Eye, MapPin, Calendar, Users, Zap, ShieldAlert } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, Search, Eye, MapPin, Calendar, Users, Zap, ShieldAlert, Trash2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import type { MatchStatus } from "@/data/types";
 import { cn } from "@/lib/utils";
 
@@ -36,10 +38,29 @@ export default function Matches() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [deleteMatchId, setDeleteMatchId] = useState<string | null>(null);
+  const [deleteMatchDetails, setDeleteMatchDetails] = useState<{ homeTeam: string; awayTeam: string; venue: string } | null>(null);
 
   const { data: matches = [], isLoading } = useQuery({
     queryKey: ["adminMatches"],
     queryFn: () => adminApi.matches.getAll(),
+  });
+
+  const toast = useToast().toast;
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.matches.delete(id),
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: ["adminMatches"] });
+      setDeleteMatchId(null);
+      setDeleteMatchDetails(null);
+      toast({ title: "Match removed", description: "Fixture deleted successfully.", variant: "destructive" });
+    },
+    onError(err: any) {
+      toast({ title: "Delete failed", description: err?.message || "Could not delete match", variant: "destructive" });
+    },
   });
 
   const filtered = (matches || []).filter((m: any) => {
@@ -245,8 +266,53 @@ export default function Matches() {
                             </div>
                             
                             <div className="flex gap-4 pt-4 border-t border-slate-100">
-                               <Button className="flex-1 bg-slate-900 text-white rounded-xl h-12 font-bold uppercase tracking-widest text-xs shadow-lg hover:shadow-xl transition-all">Edit Match Details</Button>
-                               <Button variant="outline" className="flex-1 border-slate-200 rounded-xl h-12 font-bold uppercase tracking-widest text-xs hover:bg-slate-50">Generate Audit Report</Button>
+                               <Button asChild className="flex-1 bg-slate-900 text-white rounded-xl h-12 font-bold uppercase tracking-widest text-xs shadow-lg hover:shadow-xl transition-all">
+                              <Link to={`/admin/matches/edit/${match._id}`}>Edit Match Details</Link>
+                            </Button>
+                            <AlertDialog open={deleteMatchId === match._id} onOpenChange={(open) => !open && setDeleteMatchId(null)}>
+                              <Button
+                                variant="destructive"
+                                className="flex-1 rounded-xl h-12 font-bold uppercase tracking-widest text-xs"
+                                onClick={() => {
+                                  setDeleteMatchId(match._id);
+                                  setDeleteMatchDetails({ homeTeam: match.homeTeam, awayTeam: match.awayTeam, venue: match.venue });
+                                }}
+                                disabled={deleteMutation.isPending}
+                              >
+                                {deleteMutation.isPending ? (
+                                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting</>
+                                ) : (
+                                  <><Trash2 className="mr-2 h-4 w-4" /> Delete</>
+                                )}
+                              </Button>
+                              <AlertDialogContent className="max-w-md rounded-2xl border-none shadow-2xl">
+                                <AlertDialogHeader>
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2.5 bg-rose-100 rounded-full">
+                                      <AlertCircle className="h-5 w-5 text-rose-600" />
+                                    </div>
+                                    <AlertDialogTitle className="text-lg font-bold text-slate-900">Delete Match</AlertDialogTitle>
+                                  </div>
+                                  <AlertDialogDescription className="text-sm text-slate-600 mt-2">
+                                    You're about to permanently delete <span className="font-bold text-slate-900">{deleteMatchDetails?.homeTeam} vs {deleteMatchDetails?.awayTeam}</span> at {deleteMatchDetails?.venue}.
+                                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                      <p className="text-xs font-semibold text-amber-900">⚠️ This action cannot be undone.</p>
+                                      <p className="text-xs text-amber-800 mt-1">All associated ticket sales and orders will remain in history.</p>
+                                    </div>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="gap-3">
+                                  <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-rose-600 hover:bg-rose-700 text-white rounded-lg"
+                                    onClick={() => deleteMutation.mutate(match._id)}
+                                  >
+                                    {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete Match'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <Button variant="outline" className="flex-1 border-slate-200 rounded-xl h-12 font-bold uppercase tracking-widest text-xs hover:bg-slate-50">Generate Audit Report</Button>
                             </div>
                           </div>
                         </DialogContent>
